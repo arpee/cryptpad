@@ -78,7 +78,7 @@ define([
      * Perform Saito wallet login:
      * 1. Read raw key material from sessionStorage or wallet
      * 2. Convert signingKey (plain array) back to Uint8Array
-     * 3. Derive 192 bytes of entropy via BLAKE2b
+     * 3. Derive 192 bytes of entropy via SHA-512 KDF (nacl.hash)
      * 4. Set window.SAITO_AUTH_BYTES for common-credential.js hook
      * 5. Trigger the standard CryptPad login flow with a deterministic username
      */
@@ -88,11 +88,6 @@ define([
             if (!keys || !keys.signingKey) {
                 onError('No Saito wallet found. Please open CryptPad from your Saito application.');
                 return;
-            }
-
-            // Ensure libsodium is ready (CryptPad bundles it)
-            if (typeof sodium !== 'undefined' && sodium.ready) {
-                await sodium.ready;
             }
 
             // Convert plain array back to Uint8Array (JSON roundtrip loses type)
