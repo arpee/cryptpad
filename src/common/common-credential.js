@@ -52,6 +52,15 @@ var factory = function (AppConfig = {}, Scrypt) {
     };
 
     Cred.deriveFromPassphrase = function (username, password, len, cb) {
+        // Saito wallet hook: if wallet-derived entropy has been injected by the
+        // Saito login flow (customize/login.js), bypass scrypt entirely and
+        // return the pre-derived bytes. The value must be a Uint8Array of length
+        // >= len (default 192), produced deterministically from the Saito wallet
+        // private key so the same wallet always yields the same CryptPad identity.
+        if (window.SAITO_AUTH_BYTES && window.SAITO_AUTH_BYTES instanceof Uint8Array) {
+            return void cb(window.SAITO_AUTH_BYTES);
+        }
+
         Scrypt(password,
             username + Cred.customSalt(), // salt
             8, // memoryCost (n)
