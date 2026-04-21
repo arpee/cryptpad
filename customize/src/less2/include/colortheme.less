@@ -1,0 +1,75 @@
+/*
+ * Saito CryptPad — colour theme overrides
+ *
+ * This file is loaded BEFORE colortheme-all.less variables are applied.
+ * Override only what you want changed — everything else falls back to CryptPad defaults.
+ *
+ * Saito brand palette (placeholder values — update with final brand colours):
+ *   Primary:    #E3361C  (saito red)
+ *   Dark bg:    #1A1A2E
+ *   Mid bg:     #16213E
+ *   Accent:     #0F3460
+ *
+ * To rebuild after editing:
+ *   npm run build   (from cryptpad root)
+ *
+ * TODO: Confirm final Saito brand hex values with the design spec before launch.
+ */
+
+// -------------------------------------------------------------------------
+// Saito brand colours
+// Update these variables — they cascade through the entire theme.
+// -------------------------------------------------------------------------
+
+@saito_red:          #E3361C;
+@saito_red_light:    lighten(@saito_red, 15%);
+@saito_red_fade:     fade(@saito_red, 75%);
+@saito_red_fader:    fade(@saito_red, 50%);
+@saito_red_fadest:   fade(@saito_red, 20%);
+
+// Dark mode background scale (uncomment if going dark-first)
+// @saito_bg_dark:   #1A1A2E;
+// @saito_bg_mid:    #16213E;
+// @saito_bg_accent: #0F3460;
+
+// -------------------------------------------------------------------------
+// CryptPad brand colour overrides
+// The primary @cryptpad_color_brand drives buttons, links, focus rings,
+// progress bars, and most accent colours throughout the UI.
+// -------------------------------------------------------------------------
+
+@cryptpad_color_brand:        @saito_red;
+@cryptpad_color_brand_300:    lighten(@saito_red, 30%);
+@cryptpad_color_brand_fade:   @saito_red_fade;
+@cryptpad_color_brand_fader:  @saito_red_fader;
+@cryptpad_color_brand_fadest: @saito_red_fadest;
+
+// Link colour follows brand
+@cryptpad_color_link: @cryptpad_color_brand;
+
+// -------------------------------------------------------------------------
+// App-specific accent colours (optional — uncomment to customise per-app)
+// These colour the app icons in the drive/index.
+// -------------------------------------------------------------------------
+
+// @colortheme_apps: {
+//     default:      @saito_red;
+//     drive:        @saito_red;
+//     pad:          #256ad5;
+//     code:         #EAA000;
+//     sheet:        #40865c;
+//     doc:          #5170B5;
+//     kanban:       #8C4;
+//     whiteboard:   #8f40f5;
+//     presentation: #C65D27;
+//     // ...others unchanged
+// };
+
+// -------------------------------------------------------------------------
+// TODO: Logo swap
+// Replace customize/CryptPad_logo.svg and customize/CryptPad_logo_hero.svg
+// with Saito-branded SVGs. The LESS variables below control logo-adjacent
+// colours; adjust once the new SVG assets are in place.
+// -------------------------------------------------------------------------
+
+// @cryptpad_logo_grey: @saito_red;  // logo grey used in toolbar; uncomment after logo swap
