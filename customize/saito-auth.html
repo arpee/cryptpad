@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!--
+  saito-auth.html — Saito wallet auth relay page
+  Served at: https://cp.hda0.net/saito-auth.html
+
+  This page is the cross-origin bridge between the Saito module (saito.io) and
+  CryptPad (cp.hda0.net). Because sessionStorage is origin-scoped, the Saito
+  module cannot write directly into CryptPad's sessionStorage. Instead:
+
+    1. Saito module derives CryptPad keypairs from the wallet
+    2. Redirects to this page with keys encoded in the URL fragment:
+         https://cp.hda0.net/saito-auth.html#<base64-json>
+    3. This page reads the fragment, writes SAITO_AUTH_KEYS to sessionStorage,
+       clears the URL fragment, then redirects to /login
+    4. CryptPad's customize/login.js reads sessionStorage and injects the keys
+
+  Security notes:
+  - The fragment is NEVER sent to the server (browser-only)
+  - Keys are cleared from sessionStorage immediately after login.js reads them
+    (login.js calls sessionStorage.removeItem('SAITO_AUTH_KEYS'))
+  - This page does minimal work — read, write, redirect. No rendering.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Saito Auth — redirecting…</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #888;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <span>Connecting Saito wallet…</span>
+
+  <script>
+    (function () {
+      var REDIRECT_ON_ERROR = '/';
+      var REDIRECT_ON_SUCCESS = '/login';
+
+      try {
+        var fragment = window.location.hash.slice(1); // strip leading '#'
+
+        if (!fragment) {
+          // No payload — go to CryptPad normally (standard login)
+          window.location.replace(REDIRECT_ON_ERROR);
+          return;
+        }
+
+        // Decode and validate payload
+        var raw = atob(fragment);
+        var keys = JSON.parse(raw);
+
+        if (!keys || !keys.signingKey || !keys.publicKey) {
+          console.warn('[saito-auth] Invalid key payload — redirecting to standard login');
+          window.location.replace(REDIRECT_ON_ERROR);
+          return;
+        }
+
+        // Write keys to sessionStorage on this origin (cp.hda0.net)
+        // customize/login.js will read and clear this on the next page load
+        sessionStorage.setItem('SAITO_AUTH_KEYS', JSON.stringify(keys));
+
+        // Clear the fragment from the URL before redirecting so keys don't
+        // appear in browser history
+        history.replaceState(null, '', window.location.pathname);
+
+        // Redirect to CryptPad login — customize/login.js takes it from here
+        window.location.replace(REDIRECT_ON_SUCCESS);
+
+      } catch (err) {
+        console.error('[saito-auth] Error processing auth payload:', err);
+        // Fall back to standard CryptPad login
+        window.location.replace(REDIRECT_ON_ERROR);
+      }
+    })();
+  </script>
+</body>
+</html>
