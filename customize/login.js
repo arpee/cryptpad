@@ -92,8 +92,13 @@ define([
 
             // Convert plain array back to Uint8Array (JSON roundtrip loses type)
             var privBytes = new Uint8Array(keys.signingKey);
-            if (privBytes.length !== 64) {
-                onError('Invalid wallet key length (' + privBytes.length + ', expected 64).');
+
+            // Saito may return 32-byte seed or 64-byte full key (seed || pubkey)
+            if (privBytes.length === 32 && window.nacl) {
+                var kp = window.nacl.sign.keyPair.fromSeed(privBytes);
+                privBytes = kp.secretKey; // 64 bytes
+            } else if (privBytes.length !== 64) {
+                onError('Invalid wallet key length (' + privBytes.length + ', expected 32 or 64).');
                 return;
             }
 

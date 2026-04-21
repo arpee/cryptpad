@@ -70,8 +70,16 @@
      * @returns {Uint8Array} - 192 bytes of deterministic entropy
      */
     function deriveEntropy(saitoPrivateKey) {
-        if (!saitoPrivateKey || saitoPrivateKey.length !== 64) {
-            throw new Error('SaitoCryptPadKeys: expected 64-byte Ed25519 secret key');
+        if (!saitoPrivateKey || (saitoPrivateKey.length !== 64 && saitoPrivateKey.length !== 32)) {
+            throw new Error('SaitoCryptPadKeys: expected 32-byte seed or 64-byte Ed25519 secret key, got ' + (saitoPrivateKey ? saitoPrivateKey.length : 'null'));
+        }
+
+        // If 32-byte seed, expand to 64-byte key using nacl.sign.keyPair.fromSeed
+        if (saitoPrivateKey.length === 32) {
+            if (typeof nacl === 'undefined' || !nacl.sign) {
+                throw new Error('SaitoCryptPadKeys: nacl.sign not available for seed expansion');
+            }
+            saitoPrivateKey = nacl.sign.keyPair.fromSeed(saitoPrivateKey).secretKey;
         }
 
         // Use tweetnacl's nacl.hash (SHA-512)

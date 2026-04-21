@@ -19,7 +19,10 @@ define([
         'pad',
         'slide',
         'whiteboard',
-        'integration'
+        'integration',
+        'drive',
+        'sheet',
+        'saito-login'
     ].map(function (x) {
         return `/${x}/`;
     });

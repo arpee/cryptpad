@@ -63,7 +63,13 @@ define([
     try {
         // Convert plain array back to Uint8Array
         var privBytes = new Uint8Array(keys.signingKey);
-        if (privBytes.length !== 64) {
+
+        // Saito may return 32-byte seed or 64-byte full key (seed || pubkey)
+        // If 32 bytes, expand to 64 using nacl.sign.keyPair.fromSeed
+        if (privBytes.length === 32) {
+            var keypair = window.nacl.sign.keyPair.fromSeed(privBytes);
+            privBytes = keypair.secretKey; // 64 bytes
+        } else if (privBytes.length !== 64) {
             setStatus('Invalid key length (' + privBytes.length + ')', true);
             return;
         }
