@@ -1,0 +1,10 @@
+--- a/src/common/common-credential.js
++++ b/src/common/common-credential.js
+@@ -54,6 +54,12 @@ Cred.deriveFromPassphrase = function (username, password, len, cb) {
++    // Saito wallet hook: if wallet-derived keys have been injected by the
++    // Saito login flow (customize/login.js), bypass scrypt entirely and
++    // return them directly. Standard username/password path is unchanged.
++    if (window.SAITO_AUTH_KEYS) { return cb(window.SAITO_AUTH_KEYS); }
++
+     Scrypt(password,
+         username + Cred.customSalt(), // salt
