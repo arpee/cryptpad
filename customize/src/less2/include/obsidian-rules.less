@@ -1,8 +1,19 @@
 /*
- * Obsidian Flow — CSS Rules Layer
+ * Obsidian Flow — CryptPad chrome theming layer
  *
- * Comprehensive overrides targeting CryptPad's actual DOM classes.
- * Gradient buttons, glassmorphism, ghost borders, typography, depth.
+ * Aesthetic: "Vitreous Depth, Tonal Monolith."
+ *   Boundaries defined by tonal shifts, not hard borders.
+ *   Primary actions wear the signature 135° violet → coral gradient.
+ *   Floating surfaces read as glass lit from behind.
+ *
+ * Everything in this file targets the CryptPad UI shell (toolbars, sidebars,
+ * dialogs, drive, dropdowns, forms, corner popups, notifications, infopages).
+ * Per-app document canvases (sheet cells, doc body, slide, whiteboard, etc.)
+ * are intentionally left alone so their own rendering stays faithful.
+ *
+ * Design tokens are emitted as CSS custom properties on the enclosing scope
+ * (body.cp-app-* or body.html), so downstream rules can be tuned by editing
+ * one line here.
  */
 
 @import (reference) "./colortheme-all.less";
@@ -10,367 +21,2567 @@
 .obsidian_main() {
     --LessLoader_require: LessLoader_currentFile();
 
-    // =====================================================================
-    // 0. GLOBAL FONT & ANTIALIASING
-    // =====================================================================
+    // =========================================================================
+    //  DESIGN TOKENS
+    //  Emitted as CSS custom properties so overrides (and per-page tweaks) can
+    //  reach in without recompiling less.
+    // =========================================================================
+
+    // Surface stack (darkest → brightest) ——————————————————————————————————
+    // Each level shifted ~8–11 points darker relative to the previous palette
+    // so that all panels, dialogs, and cards read as deeply recessed rather
+    // than mid-gray — matching the near-black "New Document" card aesthetic.
+    --obs-surface-lowest:   #060608;   // recessed: sidebars, outer frame
+    --obs-surface-low:      #0c0c0f;   // base: canvas background
+    --obs-surface:          #131316;   // app chrome
+    --obs-surface-container: #171719;  // primary content containers
+    --obs-surface-high:     #202024;   // hover / active nav items
+    --obs-surface-highest:  #2a2a2d;   // floating cards, secondary buttons
+    --obs-surface-bright:   #303033;   // hover on floating elements
+    --obs-surface-dim:      #030305;   // pure inset dips
+
+    // Text and outlines ————————————————————————————————————————————————————
+    --obs-on-surface:       #e4e1e6;
+    --obs-on-surface-muted: #cac3d8;
+    --obs-on-surface-dim:   #948ea1;   // outline: secondary icons/labels
+    --obs-outline:          #948ea1;
+    --obs-outline-variant:  #494455;   // used at low alpha for ghost borders
+
+    // Brand / accents ——————————————————————————————————————————————————————
+    --obs-primary:              #7C4DFF;   // primary-container in M3 terms
+    --obs-primary-bright:       #cdbdff;   // "primary" on-dark accent
+    --obs-on-primary:           #fcf6ff;
+    --obs-secondary:            #ffb2bf;
+    --obs-secondary-warm:       #ff8aa3;
+    --obs-tertiary:             #ffb688;
+    --obs-danger:               #ff6b6b;
+    --obs-success:              #8ce99a;
+
+    // Signatures ——————————————————————————————————————————————————————————
+    --obs-gradient:     linear-gradient(135deg, #7C4DFF 0%, #ff8aa3 100%);
+    --obs-gradient-soft: linear-gradient(135deg, fade(#7C4DFF, 20%) 0%, transparent 100%);
+
+    // Ghost borders are 1px of outline-variant at 20% opacity — glints, not cages
+    --obs-ghost-border:      1px solid rgba(73, 68, 85, 0.20);
+    --obs-ghost-border-soft: 1px solid rgba(73, 68, 85, 0.10);
+    // Buttons need more contrast than surfaces: a ghost card can disappear
+    // into the bg elegantly, but a ghost button has to *read as a button*
+    // at rest. A lightly violet-tinted white at 0.28 alpha sits cleanly
+    // above the dark fill and picks up the brand note.
+    --obs-button-border:       1px solid rgba(205, 189, 255, 0.28);
+    --obs-button-border-hover: 1px solid rgba(124, 77, 255, 0.55);
+
+    // Floating surfaces get a multi-layer ambient shadow + faint top highlight
+    --obs-shadow-ambient:
+        0 10px 30px -10px rgba(0, 0, 0, 0.5),
+        0 0 1px 1px rgba(255, 255, 255, 0.05);
+    --obs-shadow-floating:
+        0 4px 12px -2px rgba(0, 0, 0, 0.4),
+        0 0 1px 1px rgba(255, 255, 255, 0.04);
+    --obs-shadow-canvas: 0 0 50px rgba(0, 0, 0, 0.5);
+
+    // Glass
+    --obs-glass-bg: rgba(19, 19, 22, 0.78);
+    --obs-glass-bg-strong: rgba(19, 19, 22, 0.92);
+
+    // Focus glow — 4px outer halo at 10% primary
+    --obs-focus-ring: 0 0 0 4px rgba(124, 77, 255, 0.18);
+
+    // Radii ———————————————————————————————————————————————————————————————
+    --obs-radius-sm:   0.25rem;   // 4px — chips, compact buttons
+    --obs-radius-md:   0.5rem;    // 8px — inputs, cards, most buttons
+    --obs-radius-lg:   0.75rem;   // 12px — modals, floating panels
+    --obs-radius-xl:   1rem;      // 16px — hero cards
+    --obs-radius-pill: 999px;     // interactive pills
+
+    // Spacing (8px grid) ——————————————————————————————————————————————————
+    --obs-space-1: 4px;
+    --obs-space-2: 8px;
+    --obs-space-3: 12px;
+    --obs-space-4: 16px;
+    --obs-space-5: 24px;
+    --obs-space-6: 32px;
+    --obs-space-7: 48px;
+
+    // Motion ——————————————————————————————————————————————————————————————
+    --obs-ease:      cubic-bezier(0.22, 1, 0.36, 1);
+    --obs-ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
+    --obs-dur-xs: 0.12s;
+    --obs-dur-sm: 0.18s;
+    --obs-dur-md: 0.28s;
+
+    // =========================================================================
+    //  GLOBAL BASE — body, anti-aliasing, selection, focus-visible
+    // =========================================================================
 
     &, body, body.html {
         font-family: 'Manrope', 'Open Sans', 'Helvetica Neue', sans-serif !important;
         -webkit-font-smoothing: antialiased !important;
         -moz-osx-font-smoothing: grayscale !important;
+        letter-spacing: 0.005em;
     }
 
-    // =====================================================================
-    // 1. FLOW GRADIENT — Primary / action buttons
-    // =====================================================================
-
-    .btn-primary,
-    .cp-toolbar-button-primary,
-    .cp-creation-button-pick,
-    .subscribe-btn,
-    .alertify .dialog button.ok,
-    .cp-corner button.primary {
-        background: linear-gradient(135deg, #7C4DFF 0%, #ff8aa3 100%) !important;
-        border: none !important;
-        color: #fcf6ff !important;
-        font-weight: 700 !important;
-        border-radius: 0.5rem !important;
-        transition: filter 0.2s ease, transform 0.1s ease !important;
-
-        &:hover {
-            filter: brightness(1.15) !important;
-            transform: scale(0.98) !important;
-        }
-        &:active {
-            transform: scale(0.96) !important;
-        }
+    ::selection {
+        background-color: fade(#7C4DFF, 35%);
+        color: @cryptpad_text_col;
     }
 
-    // Secondary / default buttons
-    .btn-default,
-    .btn-secondary,
-    .cp-toolbar-drawer-button,
-    .alertify .dialog button.cancel,
-    .cp-corner button:not(.primary) {
-        background-color: @cryptpad_color_grey_700 !important;
-        border: 1px solid fade(#494455, 20%) !important;
-        color: @cryptpad_text_col !important;
-        border-radius: 0.5rem !important;
-        transition: background-color 0.2s ease !important;
-
-        &:hover {
-            background-color: @cryptpad_color_grey_600 !important;
-        }
+    :focus-visible {
+        outline: none;
+        box-shadow: var(--obs-focus-ring);
+        border-radius: var(--obs-radius-sm);
     }
 
-    // =====================================================================
-    // 2. TOOLBAR — Tonal depth, ghost borders, ambient shadow
-    // =====================================================================
+    // =========================================================================
+    //  TYPOGRAPHY — Editorial scale with tight tracking on display sizes
+    // =========================================================================
 
-    .cp-toolbar {
-        background-color: @cryptpad_color_grey_900 !important;
-        border-bottom: 1px solid fade(#494455, 15%) !important;
-        box-shadow: 0 4px 20px -4px rgba(0,0,0,0.4) !important;
-    }
-    .cp-toolbar-top {
-        background-color: @cryptpad_color_grey_900 !important;
-    }
-    .cp-toolbar-bottom {
-        border-top: 1px solid fade(#494455, 15%) !important;
-    }
-    .cp-toolbar-container {
-        border: none !important;
-    }
-    .cp-toolbar-title-value {
+    h1, h2, h3, h4, h5, h6 {
         font-family: 'Manrope', sans-serif !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.02em !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        line-height: 1.18 !important;
     }
-    .cp-toolbar-user-dropdown,
-    .cp-toolbar-spinner {
+    h1 {
+        font-weight: 800 !important;
+        letter-spacing: -0.025em !important;
+        line-height: 1.08 !important;
+    }
+    h2 {
+        font-weight: 700 !important;
+        letter-spacing: -0.015em !important;
+    }
+
+    // Uppercase micro-labels (Label-SM in the spec) — used everywhere status,
+    // meta, and "etch-plate" typography is needed.
+    //
+    // Note: `.cp-toolbar-user-dropdown` is deliberately NOT in this list.
+    // The account menu (`.cp-dropdown-content`) is nested inside that
+    // container, so applying uppercase/tight-tracking here would cascade
+    // into every menu item and info row — which made the menu read as an
+    // etch-plate block instead of calm prose.  The avatar initials get
+    // their uppercase treatment directly on `.cp-avatar-default`.
+    .cp-toolbar-spinner,
+    .cp-version-footer,
+    .cp-footer-version,
+    .cp-badge,
+    .cp-obs-label {
         font-size: 0.6875rem !important;
         font-weight: 700 !important;
         letter-spacing: 0.05em !important;
         text-transform: uppercase !important;
     }
-    // Toolbar link/logo
-    .cp-toolbar-link-logo {
+
+    // =========================================================================
+    //  GLOBAL CHROME — app backgrounds
+    //
+    //  Canvas gets a very low-intensity radial bloom of the primary violet
+    //  anchored to the top-right corner.  The gradient is flat enough that
+    //  document surfaces still read as dark neutral, but it lifts the whole
+    //  chrome out of "pure #131316 everywhere" flatness.
+    // =========================================================================
+
+    body, body.html {
+        background-color: var(--obs-surface-low) !important;
+        background-image:
+            radial-gradient(
+                1200px 800px at 100% -10%,
+                rgba(124, 77, 255, 0.10) 0%,
+                rgba(124, 77, 255, 0.04) 35%,
+                transparent 70%
+            ),
+            radial-gradient(
+                900px 600px at 0% 110%,
+                rgba(255, 107, 123, 0.05) 0%,
+                transparent 60%
+            ) !important;
+        background-attachment: fixed !important;
+        color: var(--obs-on-surface) !important;
+    }
+
+    // =========================================================================
+    //  TOOLBAR — two-row app chrome
+    //
+    //  Upstream geometry is 32px line-height with 5px button padding. That
+    //  reads as crammed at modern display densities, so we bump button
+    //  height, add real gutters, and layer the two rows onto distinct
+    //  surfaces to restore the tonal hierarchy.
+    //
+    //     .cp-toolbar-top    → surface-low (#131316)   — title / presence row
+    //     .cp-toolbar-bottom → surface-lowest (#0e0e11) — action row
+    //
+    //  All buttons inside a toolbar (regardless of .btn-primary / .btn-default
+    //  / .toolbar_button / raw <button>) are normalized to the same height,
+    //  radius, and inter-button gap so the row reads as one component.
+    // =========================================================================
+
+    .cp-toolbar {
+        background: linear-gradient(
+            180deg,
+            var(--obs-surface) 0%,
+            var(--obs-surface-low) 100%
+        ) !important;
+        border: none !important;
+        border-bottom: none !important;
+        box-shadow:
+            0 1px 0 rgba(124, 77, 255, 0.12),
+            0 2px 0 rgba(255, 255, 255, 0.02),
+            0 8px 32px -12px rgba(0, 0, 0, 0.6) !important;
+        padding: 0 !important;
+        position: relative !important;
+    }
+    // Gradient hairline under the toolbar — subtle violet → coral sweep that
+    // grounds the chrome without the blunt 1px ghost border.
+    .cp-toolbar::after {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        height: 1px !important;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(124, 77, 255, 0.35) 28%,
+            rgba(255, 107, 123, 0.25) 65%,
+            transparent 100%
+        ) !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    }
+    .cp-toolbar-container {
+        border: none !important;
         background-color: transparent !important;
     }
 
-    // =====================================================================
-    // 3. SIDEBAR — Tonal shift separation (no hard border)
-    // =====================================================================
+    // Row 1 — title / presence.
+    //
+    // Background: a shallow radial bloom anchored above the title + a soft
+    // top-down gradient that lifts the strip onto a lighter plane than the
+    // action row below.  Reads as "illuminated from the ambient canvas"
+    // rather than a flat block.
+    //
+    // Vertical rhythm: align-items: center everywhere so the logo, title,
+    // spinner sublabel, and user cluster share one axis regardless of
+    // intrinsic heights.
+    .cp-toolbar-top {
+        background:
+            radial-gradient(
+                900px 280px at 25% -40%,
+                rgba(124, 77, 255, 0.14) 0%,
+                rgba(255, 138, 163, 0.04) 40%,
+                transparent 70%
+            ),
+            linear-gradient(
+                180deg,
+                rgba(40, 38, 48, 0.55) 0%,
+                rgba(20, 19, 25, 0.85) 60%,
+                var(--obs-surface-low) 100%
+            ) !important;
+        min-height: 64px !important;
+        padding: var(--obs-space-3) var(--obs-space-5) !important;
+        gap: var(--obs-space-3) !important;
+        align-items: center !important;
+        display: flex !important;
+    }
+    // Force vertical centering on every direct child of the top row.  Upstream
+    // sets `line-height: @toolbar_top-height` on some clusters (user, link),
+    // which pins glyphs to the baseline instead of centering.  Reset.
+    .cp-toolbar-top > *,
+    .cp-toolbar-top .cp-toolbar-link,
+    .cp-toolbar-top .cp-toolbar-user {
+        display: inline-flex !important;
+        align-items: center !important;
+        line-height: 1 !important;
+        height: auto !important;
+    }
+
+    // Title cluster.  DOM is: .cp-toolbar-title > .cp-toolbar-title-hoverable
+    // + .cp-toolbar-spinner (appended as a child by createSpinner() in
+    // www/common/toolbar.js:977).  Upstream sets `height: 100%` on the
+    // container plus `align-self: baseline` on the inner hoverable, which
+    // pulls glyphs onto the bar's baseline instead of its geometric center.
+    //
+    // Layout goals:
+    //   * Title text sits *flush* against the app-logo link (left-aligned
+    //     with the rest of the left controls).
+    //   * "SAVED" capsule floats dead-center of the title container (which
+    //     has flex:1 so its mid-point tracks the mid-point of the bar).
+    //
+    // Strategy: row-flex the container with content-size title at start,
+    // then absolutely position the spinner at 50/50 so it never jostles the
+    // title layout as text changes length.
+    //
+    // Spacing note: we intentionally *don't* give this container any horizontal
+    // margin. Spacing to the logo on the left is handled entirely by the
+    // flex `gap` on `.cp-toolbar-top` (12px) plus the logo's own side padding
+    // (8px) — together that's ~2 characters wide at the title's 1.5rem scale,
+    // which is the visual breathing room we want. Adding margin here on top
+    // of the gap stacks and pushes the title noticeably right of the logo.
+    .cp-toolbar-title {
+        margin: 0 !important;
+        display: flex !important;
+        flex-flow: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        height: auto !important;
+        min-height: 0 !important;
+        line-height: 1 !important;
+        gap: var(--obs-space-2) !important;
+        position: relative !important;
+    }
+    .cp-toolbar-title-hoverable {
+        align-self: center !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        line-height: 1 !important;
+        flex: 0 0 auto !important;
+    }
+    // Lighter, slightly larger title.  Manrope at weight 500 reads more
+    // editorial than 700; tight tracking and 1.5rem scale keeps it feeling
+    // substantial without the "app-bar shouting" of a bold cut.
+    .cp-toolbar-title-value,
+    .cp-toolbar-title-value-page {
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.012em !important;
+        font-size: 1.5rem !important;
+        line-height: 1 !important;
+        color: var(--obs-on-surface) !important;
+        padding: 4px 6px !important;
+        border: 1px solid transparent !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+    .cp-toolbar-title-readonly {
+        font-size: 1rem !important;
+        font-style: italic !important;
+        font-weight: 400 !important;
+        color: var(--obs-on-surface-muted) !important;
+        margin-left: var(--obs-space-2) !important;
+        line-height: 1 !important;
+    }
+    .cp-toolbar-title-hoverable:hover .cp-toolbar-title-editable,
+    .cp-toolbar-title-hoverable:hover .cp-toolbar-title-edit {
+        border: 1px solid rgba(73, 68, 85, 0.3) !important;
+        border-radius: var(--obs-radius-sm) !important;
+        background-color: var(--obs-surface-container) !important;
+    }
+    .cp-toolbar-title-save,
+    .cp-toolbar-title-edit {
+        border-radius: var(--obs-radius-sm) !important;
+        color: var(--obs-on-surface-dim) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        line-height: 1 !important;
+    }
+
+    // "SAVED" / status capsule.  Child of .cp-toolbar-title, so absolute
+    // positioning relative to that flex container parks it at the title's
+    // (and near enough to the bar's) horizontal center without touching
+    // the left-aligned title text.
+    //
+    // Sizing: roughly twice the footprint of the previous whisper label —
+    // 0.875rem glyph, 8×18 padding, thicker pill — so it reads as a real
+    // status pill instead of a subtitle.
+    //
+    // Auto-fade: the companion toolbar.js patch drops
+    // `cp-toolbar-spinner-hidden` on the element ~2.5s after it reads
+    // "saved", and drops `cp-toolbar-spinner-active` whenever text
+    // changes to typing / reconnecting / etc.  CSS handles the fade.
+    .cp-toolbar-spinner {
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+
+        padding: 8px 18px !important;
+        color: var(--obs-primary-bright) !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-size: 0.875rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.1em !important;
+        text-transform: uppercase !important;
+        min-width: 0 !important;
+        line-height: 1 !important;
+        height: auto !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+
+        background: linear-gradient(
+            180deg,
+            rgba(124, 77, 255, 0.18) 0%,
+            rgba(124, 77, 255, 0.06) 100%
+        ) !important;
+        border: 1px solid rgba(124, 77, 255, 0.32) !important;
+        border-radius: var(--obs-radius-pill) !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.06) inset,
+            0 4px 12px -6px rgba(124, 77, 255, 0.45) !important;
+
+        opacity: 1;
+        transition: opacity 600ms var(--obs-ease-soft),
+                    transform 600ms var(--obs-ease-soft) !important;
+    }
+    // Post-save fade: toolbar.js adds .cp-toolbar-spinner-hidden ~2.5s
+    // after showing "saved".  pointer-events:none means the invisible
+    // capsule never blocks clicks on centered elements behind it.
+    .cp-toolbar-spinner.cp-toolbar-spinner-hidden {
+        opacity: 0 !important;
+        transform: translate(-50%, calc(-50% - 4px)) !important;
+        pointer-events: none !important;
+    }
+
+    // -------------------------------------------------------------------------
+    //  App logo (top-left — kanban icon, pad icon, sheet icon, etc.)
+    //
+    //  Upstream renders this as a lucide SVG with `stroke-width: 3`, which
+    //  reads as heavy and cartoonish at the toolbar's scale. We dial it down
+    //  to a thinner stroke (1.75), slightly smaller size, and a soft accent
+    //  tint so the app identifier feels like a watermark cue rather than the
+    //  loudest element in the bar.
+    // -------------------------------------------------------------------------
+    .cp-toolbar-link-logo,
+    a.cp-toolbar-link-logo {
+        background-color: transparent !important;
+        padding: 0 var(--obs-space-2) !important;
+        height: auto !important;
+        position: relative !important;
+        opacity: 0.82 !important;
+        transition: opacity var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast) !important;
+    }
+    .cp-toolbar-link-logo:hover {
+        opacity: 1 !important;
+        transform: translateY(-1px) !important;
+    }
+    .cp-toolbar-link-logo svg {
+        width: 2rem !important;
+        height: 2rem !important;
+    }
+    // Any lucide / SVG stroke children — thin them.
+    .cp-toolbar-link-logo svg,
+    .cp-toolbar-link-logo svg *,
+    .cp-toolbar-link-logo .lucide,
+    .cp-toolbar-link-logo .lucide * {
+        stroke-width: 1.75 !important;
+        vector-effect: non-scaling-stroke !important;
+    }
+
+    // Row 2 — action strip.  Deeper surface with a subtle inset shadow at
+    // the top gives a real tonal drop from the title row, plus a whisper of
+    // violet bloom beneath the primary action cluster.  Vertical padding
+    // is doubled vs. the title row: the action row carries taller buttons
+    // (38px) and the primary CTA cluster — the extra air stops things from
+    // feeling "jammed up" against the hairline separator.
+    .cp-toolbar-bottom {
+        background:
+            radial-gradient(
+                600px 200px at 50% 120%,
+                rgba(124, 77, 255, 0.08) 0%,
+                transparent 70%
+            ),
+            linear-gradient(
+                180deg,
+                var(--obs-surface-dim) 0%,
+                var(--obs-surface-lowest) 100%
+            ) !important;
+        border: none !important;
+        box-shadow:
+            inset 0 1px 0 rgba(0, 0, 0, 0.3),
+            inset 0 2px 4px -2px rgba(0, 0, 0, 0.5) !important;
+        padding: var(--obs-space-5) var(--obs-space-5) !important;
+        min-height: 88px !important;
+        gap: var(--obs-space-3) !important;
+        align-items: center !important;
+        position: relative !important;
+    }
+    .cp-toolbar-bottom-left,
+    .cp-toolbar-bottom-mid,
+    .cp-toolbar-bottom-right {
+        gap: var(--obs-space-2) !important;
+    }
+    // Separator hairline between title row and action row
+    .cp-toolbar-bottom::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        height: 1px !important;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(73, 68, 85, 0.35) 20%,
+            rgba(73, 68, 85, 0.35) 80%,
+            transparent 100%
+        ) !important;
+        pointer-events: none !important;
+    }
+    .cp-toolbar-bottom-left,
+    .cp-toolbar-bottom-mid,
+    .cp-toolbar-bottom-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: var(--obs-space-2) !important;
+    }
+    // Kill the legacy 5px button margins — gap handles spacing now
+    .cp-toolbar-bottom-left > button,
+    .cp-toolbar-bottom-mid > button,
+    .cp-toolbar-bottom-right > button,
+    .cp-toolbar-bottom-left > .cp-dropdown-container,
+    .cp-toolbar-bottom-mid > .cp-dropdown-container,
+    .cp-toolbar-bottom-right > .cp-dropdown-container {
+        margin: 0 !important;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Unified toolbar button treatment.
+    //
+    //  Every <button> inside .cp-toolbar gets the same geometry so File / Chat
+    //  / Users / chevrons / maintenance read as a consistent row, regardless
+    //  of which .btn-* class (if any) they carry. Primary buttons keep the
+    //  signature gradient but are now shape-matched (rounded-md instead of
+    //  pill) so they sit flush with their neighbors.
+    // -------------------------------------------------------------------------
+    .cp-toolbar button,
+    .cp-toolbar .toolbar_button,
+    .cp-toolbar .btn {
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 14px !important;
+        border-radius: var(--obs-radius-md) !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-size: 0.8125rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.005em !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: var(--obs-space-2) !important;
+        white-space: nowrap !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    color var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast),
+                    filter var(--obs-dur-sm) var(--obs-ease-fast) !important;
+    }
+    // Default/ghost-style in the toolbar: transparent until hovered
+    .cp-toolbar button,
+    .cp-toolbar .toolbar_button,
+    .cp-toolbar .btn-default,
+    .cp-toolbar .btn-secondary {
+        background-color: transparent !important;
+        border: 1px solid transparent !important;
+        color: var(--obs-on-surface) !important;
+        box-shadow: none !important;
+    }
+    .cp-toolbar button:hover,
+    .cp-toolbar .toolbar_button:hover,
+    .cp-toolbar .btn-default:hover,
+    .cp-toolbar .btn-secondary:hover {
+        background-color: var(--obs-surface-high) !important;
+        border-color: rgba(73, 68, 85, 0.25) !important;
+    }
+    .cp-toolbar button:active,
+    .cp-toolbar .toolbar_button:active,
+    .cp-toolbar .btn-default:active,
+    .cp-toolbar .btn-secondary:active {
+        transform: scale(0.97) !important;
+    }
+    .cp-toolbar button.cp-toolbar-button-active,
+    .cp-toolbar .toolbar_button.cp-toolbar-button-active {
+        background-color: rgba(124, 77, 255, 0.14) !important;
+        border-color: rgba(124, 77, 255, 0.4) !important;
+        color: #fff !important;
+    }
+
+    // Primary buttons inside the toolbar: gradient, still rounded-md (not
+    // pill) so they align with their neighbors. Pills are reserved for
+    // out-of-toolbar CTAs (dialogs, navbar Register, etc.).
+    //
+    // A `::before` sheen adds a subtle top-to-mid light-catch so the gradient
+    // has depth instead of reading as a flat screen-printed block.
+    // Primary action cluster in the toolbar.  Targets:
+    //   .cp-toolbar-button-primary — the class Share and Access actually
+    //     carry (upstream toolbar.js:637 / :671). Previous revisions were
+    //     matching `.cp-toolbar-share` / `.cp-toolbar-access`, which don't
+    //     exist — the pill shape was leaking in from the generic
+    //     `.btn-primary` rule further down.
+    //   .cp-toolbar-bottom-mid > button — everything in the mid cluster is,
+    //     by CryptPad convention, a primary action for the current app
+    //     (Share / Access / Preview / Present / Publish). Styling the whole
+    //     slot keeps them visually consistent even when the class list varies.
+    //   .btn-primary as a fallback for any other explicit primary inside
+    //     the toolbar.
+    .cp-toolbar .btn-primary,
+    .cp-toolbar button.btn-primary,
+    .cp-toolbar .cp-toolbar-button-primary,
+    .cp-toolbar button.cp-toolbar-button-primary,
+    .cp-toolbar .cp-toolbar-bottom-mid > button {
+        background: var(--obs-gradient) !important;
+        color: var(--obs-on-primary) !important;
+        // Crisp 1px ghost border defines the button edge against the gradient.
+        // It sits on top of the violet fill and is just warm enough (white
+        // @18%) to read like polished metal trim, not like a hard outline.
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        font-weight: 700 !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 0 18px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        // Tighter, more architectural shadow: the ambient violet glow and
+        // the warm coral halo are both lower-alpha than the previous pass,
+        // so the button no longer reads as a "hot" glowing chip — it reads
+        // as a seated, lit surface.
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.22) inset,
+            0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+            0 1px 3px rgba(0, 0, 0, 0.3),
+            0 4px 12px -4px rgba(124, 77, 255, 0.35) !important;
+    }
+    .cp-toolbar .btn-primary::before,
+    .cp-toolbar button.btn-primary::before,
+    .cp-toolbar .cp-toolbar-button-primary::before,
+    .cp-toolbar button.cp-toolbar-button-primary::before,
+    .cp-toolbar .cp-toolbar-bottom-mid > button::before {
+        content: '' !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.18) 0%,
+            rgba(255, 255, 255, 0) 55%,
+            rgba(0, 0, 0, 0.1) 100%
+        ) !important;
+        pointer-events: none !important;
+    }
+    .cp-toolbar .btn-primary > *,
+    .cp-toolbar button.btn-primary > *,
+    .cp-toolbar .cp-toolbar-button-primary > *,
+    .cp-toolbar button.cp-toolbar-button-primary > *,
+    .cp-toolbar .cp-toolbar-bottom-mid > button > * {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    .cp-toolbar .btn-primary:hover,
+    .cp-toolbar button.btn-primary:hover,
+    .cp-toolbar .cp-toolbar-button-primary:hover,
+    .cp-toolbar button.cp-toolbar-button-primary:hover,
+    .cp-toolbar .cp-toolbar-bottom-mid > button:hover {
+        filter: brightness(1.08) saturate(1.05) !important;
+        background: var(--obs-gradient) !important;
+        border-color: rgba(255, 255, 255, 0.28) !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.3) inset,
+            0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+            0 2px 6px rgba(0, 0, 0, 0.35),
+            0 6px 18px -4px rgba(124, 77, 255, 0.5) !important;
+    }
+
+    // Icon-only buttons (bell, maintenance, chevron drawer toggle, avatar
+    // dropdown) collapse to a square.
+    .cp-toolbar-notifications,
+    .cp-toolbar-maintenance,
+    .cp-toolbar-history,
+    .cp-toolbar-drawer-button,
+    .cp-toolbar-top > .cp-dropdown-container > button,
+    .cp-toolbar-user-dropdown > button {
+        width: 38px !important;
+        min-width: 38px !important;
+        padding: 0 !important;
+    }
+    .cp-toolbar-notifications,
+    .cp-toolbar-maintenance,
+    .cp-toolbar-drawer-button {
+        color: var(--obs-on-surface-muted) !important;
+
+        &:hover {
+            background-color: var(--obs-surface-high) !important;
+            color: var(--obs-on-surface) !important;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  User / presence cluster — right edge of the title row.
+    //
+    //  Upstream packs .cp-toolbar-notifications and .cp-toolbar-user-dropdown
+    //  back-to-back with no gap; combined with our new 38×38 icon size and
+    //  the avatar's own circular clip, the bell glyph and the fish avatar
+    //  visually overlap. Explicit gap + defensive margin resets restore
+    //  breathing room.  Zero-out legacy line-height:76px that was pushing
+    //  the bell off-baseline.
+    //
+    //  Sizing philosophy: this is the *quietest* cluster in the bar. The
+    //  primary CTAs (Share / Access / Preview) are the voice; the
+    //  notifications, maintenance, history, and avatar are ambient — so
+    //  they shrink to 32×32 and lighten to 0.7 opacity.
+    // -------------------------------------------------------------------------
+    .cp-toolbar-user {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        height: auto !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+    }
+    .cp-toolbar-user > * {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: auto !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        vertical-align: middle !important;
+    }
+    // All top-right icon buttons land on the same 32×32 grid with lighter
+    // strokes and softened opacity.  Each button keeps its own hover state.
+    .cp-toolbar-notifications,
+    .cp-toolbar-maintenance,
+    .cp-toolbar-history,
+    .cp-toolbar-top .cp-toolbar-drawer-button {
+        width: 32px !important;
+        min-width: 32px !important;
+        height: 32px !important;
+        border-radius: var(--obs-radius-sm) !important;
+        padding: 0 !important;
+        opacity: 0.72 !important;
+        transition: opacity var(--obs-dur-sm) var(--obs-ease-fast),
+                    background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        svg, .lucide {
+            width: 18px !important;
+            height: 18px !important;
+        }
+        svg *, .lucide * {
+            stroke-width: 1.75 !important;
+            vector-effect: non-scaling-stroke !important;
+        }
+
+        &:hover {
+            opacity: 1 !important;
+            background-color: var(--obs-surface-high) !important;
+        }
+    }
+    // Maintenance / warning icon (the red triangle).  Treat it as a real
+    // signal instead of a dim toolbar glyph: amber ambient color, amber
+    // ring when active, and a gentle pulse on the border to catch the eye.
+    // Sized slightly larger so it reads as priority in the icon cluster.
+    .cp-toolbar-maintenance {
+        width: 34px !important;
+        min-width: 34px !important;
+        height: 34px !important;
+        color: #fbbf24 !important;
+        opacity: 0.95 !important;
+        background: linear-gradient(
+            180deg,
+            rgba(251, 191, 36, 0.12) 0%,
+            rgba(251, 191, 36, 0.04) 100%
+        ) !important;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
+        box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.08) !important;
+
+        svg, .lucide { width: 18px !important; height: 18px !important; }
+
+        &:hover {
+            color: #fef3c7 !important;
+            background: linear-gradient(
+                180deg,
+                rgba(251, 191, 36, 0.22) 0%,
+                rgba(251, 191, 36, 0.08) 100%
+            ) !important;
+            border-color: rgba(251, 191, 36, 0.5) !important;
+            opacity: 1 !important;
+        }
+    }
+    // Avatar dropdown — smaller and more refined, matching the new 32px
+    // grid of its neighbors but keeping a circular silhouette so it reads
+    // as "you" instead of another control.
+    //
+    // DOM is (from createDropdown in www/common/common-ui-elements.js):
+    //   .cp-toolbar-user-dropdown.cp-dropdown-container
+    //     ├─ button[.cp-avatar when avatar image loaded]
+    //     │    └─ span.cp-dropdown-button-title
+    //     │         └─ span.cp-avatar-default   (initials, no image case)
+    //     │            OR media-tag > img        (uploaded image case)
+    //     └─ div.cp-dropdown-menu-container
+    //          └─ ul.cp-dropdown-content         (the actual menu)
+    //
+    // Critical: the menu (.cp-dropdown-menu-container) is a *sibling* of the
+    // button inside the container.  If we put `overflow: hidden` on the
+    // container to clip the avatar to a circle, we also clip the menu —
+    // which made clicking the avatar appear to do nothing.  So the circular
+    // clip has to live on the button (or deeper), not on the container.
+    .cp-toolbar-user-dropdown {
+        width: 34px !important;
+        min-width: 34px !important;
+        height: 34px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        // NOTE: intentionally *no* `overflow: hidden` here — it would clip
+        // the dropdown menu which lives as a sibling of the button.
+        overflow: visible !important;
+        position: relative !important;
+    }
+    .cp-toolbar-user-dropdown > button {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 1px solid rgba(73, 68, 85, 0.35) !important;
+        background: transparent !important;
+        opacity: 0.88 !important;
+        transition: opacity var(--obs-dur-sm) var(--obs-ease-fast),
+                    border-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+    }
+    .cp-toolbar-user-dropdown > button:hover {
+        border-color: rgba(124, 77, 255, 0.55) !important;
+        opacity: 1 !important;
+    }
+    // The avatar wrapper inside the button (createDropdown wraps `text` in
+    // a .cp-dropdown-button-title span).  Fill the button and centre its
+    // contents so both the image and initials paths land on the same grid.
+    .cp-toolbar-user-dropdown > button > .cp-dropdown-button-title {
+        width: 100% !important;
+        height: 100% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+    }
+    // Initials avatar path (when the user has no uploaded image).  Upstream
+    // relies on `.avatar_main()` being applied via `.cp-avatar` class on the
+    // button — but that class only gets added once an image successfully
+    // loads (see common-ui-elements.js updateButton).  Without it there's
+    // no `--avatar-font-size` and the `.cp-avatar-default` span falls back
+    // to browser defaults, which is why "Sa" was rendering tiny and
+    // wedged to one corner.  Own the styling here so it works regardless.
+    .cp-toolbar-user-dropdown .cp-avatar-default {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 50% !important;
+
+        background: linear-gradient(
+            135deg,
+            rgba(124, 77, 255, 0.85) 0%,
+            rgba(255, 138, 163, 0.85) 100%
+        ) !important;
+        color: var(--obs-on-primary) !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        line-height: 1 !important;
+        letter-spacing: 0.01em !important;
+        text-transform: uppercase !important;
+
+        &.animal {
+            font-size: 16px !important;
+            text-transform: none !important;
+        }
+    }
+    // Uploaded-image path — media-tag is the image wrapper upstream sets
+    // up with fixed min/max width/height of `--avatar-width` (64px here).
+    // We need it to fill our 34px button and stay circular.
+    .cp-toolbar-user-dropdown media-tag {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        max-height: none !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+        display: inline-flex !important;
+
+        img {
+            width: 100% !important;
+            height: 100% !important;
+            min-width: 100% !important;
+            min-height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 50% !important;
+        }
+    }
+
+    // Users-count / presence chip on the right of .cp-toolbar-bottom
+    #cp-toolbar-userlist-drawer-open,
+    #cp-toolbar-chat-drawer-open {
+        gap: var(--obs-space-2) !important;
+    }
+
+    // User list / presence cluster — avatars get a thin surface-tinted ring
+    // so they read as stacked tokens, not cutout circles.
+    .cp-toolbar-userlist-others,
+    .cp-toolbar-userlist-viewer {
+        .cp-avatar,
+        img {
+            border: 2px solid var(--obs-surface-low) !important;
+        }
+    }
+
+    // The secondary markdown / formatting toolbar (used inside dialog editors
+    // and the kanban card modal) — keep it tonally recessed and aligned.
+    .cp-markdown-toolbar {
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        padding: var(--obs-space-2) var(--obs-space-3) !important;
+        gap: var(--obs-space-1) !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+
+        button,
+        .btn {
+            height: 32px !important;
+            min-width: 32px !important;
+            padding: 0 10px !important;
+            border-radius: var(--obs-radius-sm) !important;
+            background-color: transparent !important;
+            border: 1px solid transparent !important;
+            color: var(--obs-on-surface-muted) !important;
+
+            &:hover {
+                background-color: var(--obs-surface-high) !important;
+                color: var(--obs-on-surface) !important;
+            }
+            &.cp-toolbar-button-active {
+                background-color: fade(#7C4DFF, 20%) !important;
+                color: #fff !important;
+            }
+        }
+    }
+
+    // =========================================================================
+    //  HELP / "LEARN MORE" BANNER
+    //  The row beneath the action bar with the documentation link and close X.
+    //  Upstream it sits flush, no padding, no surface distinction. We give it
+    //  its own glass strip so it reads as an in-context advisory, not chrome.
+    // =========================================================================
+
+    .cp-help-container {
+        background: linear-gradient(
+            180deg,
+            var(--obs-surface-container) 0%,
+            var(--obs-surface-low) 100%
+        ) !important;
+        border: none !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        padding: var(--obs-space-3) var(--obs-space-5) !important;
+        min-height: 44px !important;
+        position: relative !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        max-height: none !important;
+
+        // The close handler toggles .cp-help-hidden, which upstream hides the
+        // banner via `display: none`. Our `display: flex !important` above was
+        // winning the cascade and keeping it visible — so the X appeared to
+        // do nothing. Re-assert `display: none` here.
+        &.cp-help-hidden {
+            display: none !important;
+        }
+
+        .cp-help-text {
+            color: var(--obs-on-surface-muted) !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 0.875rem !important;
+            line-height: 1.5 !important;
+            flex: 1 !important;
+
+            a {
+                color: var(--obs-primary-bright) !important;
+                text-decoration: none !important;
+                font-weight: 600 !important;
+                border-bottom: 1px solid rgba(205, 189, 255, 0.35) !important;
+                transition: color var(--obs-dur-xs) var(--obs-ease-fast),
+                            border-color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+                &:hover {
+                    color: #fff !important;
+                    border-bottom-color: #fff !important;
+                }
+            }
+        }
+
+        .cp-help-close {
+            position: static !important;
+            margin-left: var(--obs-space-3) !important;
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: var(--obs-radius-sm) !important;
+            background-color: transparent !important;
+            color: var(--obs-on-surface-dim) !important;
+            border: 1px solid transparent !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: background-color var(--obs-dur-xs) var(--obs-ease-fast),
+                        color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+            &:hover {
+                background-color: var(--obs-surface-high) !important;
+                color: var(--obs-on-surface) !important;
+            }
+        }
+    }
+
+    // =========================================================================
+    //  KANBAN TAG-FILTER STRIP
+    //  Lives below the help banner in the kanban app: "Tags | Filter by tag |
+    //  No tags" + drag/lock/layout icons.  Upstream: no padding, no surface.
+    // =========================================================================
+
+    .cp-kanban-filterTags,
+    .cp-kanban-toggle-container {
+        padding: var(--obs-space-3) var(--obs-space-5) !important;
+        background-color: var(--obs-surface-low) !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: var(--obs-space-3) !important;
+        min-height: 52px !important;
+    }
+    .cp-kanban-filterTags-toggle,
+    .cp-kanban-toggle-tags {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: var(--obs-ghost-border) !important;
+        color: var(--obs-on-surface) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 6px 12px !important;
+        font-size: 0.8125rem !important;
+        font-weight: 600 !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &:hover {
+            background-color: var(--obs-surface-bright) !important;
+        }
+    }
+    .cp-kanban-filterTags-name,
+    .cp-kanban-filterTags-empty {
+        color: var(--obs-on-surface-muted) !important;
+        font-size: 0.8125rem !important;
+        font-weight: 600 !important;
+    }
+    .cp-kanban-filterTags-list {
+        display: flex !important;
+        gap: var(--obs-space-1) !important;
+        flex-wrap: wrap !important;
+
+        .cp-kanban-filterTag,
+        > span,
+        > button {
+            background-color: transparent !important;
+            border: var(--obs-ghost-border) !important;
+            color: var(--obs-on-surface) !important;
+            border-radius: var(--obs-radius-sm) !important;
+            padding: 2px 10px !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+
+            &.cp-kanban-filterTag-active,
+            &.active {
+                background: fade(#7C4DFF, 22%) !important;
+                border-color: var(--obs-primary) !important;
+                color: #fff !important;
+            }
+        }
+    }
+
+    // =========================================================================
+    //  SIDEBAR / LEFT NAV
+    //  Recessed surface, ghost right border, rounded items with gradient
+    //  active state.
+    // =========================================================================
 
     #cp-sidebarlayout-leftside,
     .cp-sidebarlayout-categories {
-        background-color: @cryptpad_color_grey_950 !important;
-        border-right: 1px solid fade(#494455, 15%) !important;
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-right: var(--obs-ghost-border-soft) !important;
+        padding: var(--obs-space-3) var(--obs-space-2) !important;
     }
     #cp-sidebarlayout-rightside {
-        background-color: @cryptpad_color_grey_900 !important;
+        background-color: var(--obs-surface-low) !important;
+        padding: var(--obs-space-5) var(--obs-space-6) !important;
     }
-    .cp-sidebarlayout-category {
-        border-radius: 0.375rem !important;
-        transition: background-color 0.15s ease !important;
+
+    // Sidebar category buttons (Search / Recent / Drive / Templates / Trash
+    // in CryptDrive, and equivalents in settings-style sidebars).
+    //
+    // Upstream ships these with `background-color: @cp_sidebar-left-item-bg`
+    // plus a `box-shadow`, which on our dark theme reads as a *light* fill
+    // — completely out of language with the rest of the ghost-button UI.
+    // Reset both and repaint in ghost-button vocabulary: transparent fill,
+    // `--obs-button-border`, gradient-tinted hover, violet-tinted active.
+    //
+    // We also have to reach the child `.cp-app-drive-element-row` that
+    // sits inside each `.cp-app-drive-tree-category` — that's the actual
+    // clickable bit of the category (icon + label).
+    //
+    // Note: Search / Recent / Templates / Trash are each wrapped in an
+    // `<ul class="cp-app-drive-tree-category">`, but the **Drive** entry
+    // (which is a real tree, not a flat category) is wrapped in an
+    // `<ul class="cp-app-drive-tree-docs">` instead — a separate upstream
+    // DOM path with its own `box-shadow` / fill.  Including the `-docs`
+    // class in the selector list below brings the Drive root into the
+    // same visual language as the others.
+    .cp-sidebarlayout-category,
+    .cp-app-drive-tree-category,
+    .cp-app-drive-tree-docs {
+        // Match the vertical rhythm of the rest of the app (Share/Access
+        // row, form palette, admin pages) — upstream sets a hard
+        // height:32px via .leftside-menu-category_main(), which on our
+        // theme reads as a squished pill.  Bump to ~42px and give the
+        // text/icon some breathing room on both axes.
+        margin: var(--obs-space-1) var(--obs-space-2) !important;
+        padding: var(--obs-space-2) var(--obs-space-3) !important;
+        min-height: 42px !important;
+        height: auto !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border-radius: var(--obs-radius-md) !important;
+        border: var(--obs-button-border) !important;
+        color: var(--obs-on-surface-muted) !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        letter-spacing: 0.005em !important;
+        gap: var(--obs-space-2) !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        // The clickable row inside the drive category (icon + label).
+        // Upstream gives it a padding + its own hover style; match ours.
+        .cp-app-drive-element-row {
+            background: transparent !important;
+            background-color: transparent !important;
+            border-radius: var(--obs-radius-sm) !important;
+            padding: var(--obs-space-2) var(--obs-space-3) !important;
+            color: inherit !important;
+        }
 
         &:hover {
-            background-color: fade(@cryptpad_text_col, 5%) !important;
+            background: rgba(124, 77, 255, 0.08) !important;
+            background-color: rgba(124, 77, 255, 0.08) !important;
+            border: var(--obs-button-border-hover) !important;
+            color: var(--obs-on-surface) !important;
+
+            .cp-app-drive-element-row {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
         }
-        &.cp-leftside-active {
-            background: linear-gradient(90deg, fade(#7C4DFF, 20%) 0%, transparent 100%) !important;
-            border-left: 3px solid #7C4DFF !important;
+
+        &.cp-leftside-active,
+        &.cp-leftside-active:hover,
+        &.cp-app-drive-element-active,
+        &.cp-app-drive-element-selected {
+            background: linear-gradient(135deg,
+                rgba(124, 77, 255, 0.18) 0%,
+                rgba(255, 138, 163, 0.12) 100%) !important;
+            background-color: rgba(124, 77, 255, 0.14) !important;
+            border: var(--obs-button-border-hover) !important;
+            color: var(--obs-on-surface) !important;
+
+            .cp-app-drive-element-row {
+                background: transparent !important;
+                background-color: transparent !important;
+                color: var(--obs-on-surface) !important;
+            }
         }
     }
 
-    // =====================================================================
-    // 4. DRIVE — File listing, tree, elements
-    // =====================================================================
+    // The drive tree also renders a "currently focused/selected" state on
+    // the inner row (rather than the outer category) for the Drive root
+    // entry — repaint that too so the two selection treatments agree.
+    .cp-app-drive-tree-category .cp-app-drive-element-row.cp-app-drive-element-active,
+    .cp-app-drive-tree-category .cp-app-drive-element-row.cp-app-drive-element-selected,
+    .cp-app-drive-tree-docs   .cp-app-drive-element-row.cp-app-drive-element-active,
+    .cp-app-drive-tree-docs   .cp-app-drive-element-row.cp-app-drive-element-selected {
+        background: rgba(124, 77, 255, 0.12) !important;
+        background-color: rgba(124, 77, 255, 0.12) !important;
+        color: var(--obs-on-surface) !important;
+    }
+
+    .cp-sidebarlayout-title,
+    .cp-sidebarlayout-element h3 {
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        color: var(--obs-on-surface) !important;
+    }
+    .cp-sidebarlayout-description,
+    .cp-sidebarlayout-description-item {
+        color: var(--obs-on-surface-muted) !important;
+        line-height: 1.65 !important;
+        letter-spacing: 0.005em !important;
+    }
+
+    // Setting sections (each admin / settings / teams row rendered by
+    // `sidebar.addItem`) render as `.cp-sidebarlayout-element[data-item]`.
+    // Upstream leaves them as bare stacks of label / hint / form, which on
+    // our dark canvas reads as a wall of ungrouped content.  Wrap each one
+    // in a subtle card — just-off-canvas tint + a ghost hairline — so
+    // sections are visually chunked without shouting.
+    //
+    // `instance-info-notice` is itself a `.cp-sidebarlayout-element` whose
+    // only child is an `.alert`.  Using `:has(> .alert:only-child)` opts
+    // those out, otherwise we'd double-wrap the banner.
+    #cp-sidebarlayout-rightside .cp-sidebarlayout-element[data-item] {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border-soft) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        padding: var(--obs-space-4) var(--obs-space-5) !important;
+        margin-bottom: var(--obs-space-4) !important;
+
+        // Section title (label) sits tighter against the description now
+        // that the card provides visual grouping.
+        > label.cp-item-label,
+        > .cp-default-label {
+            margin-bottom: var(--obs-space-1) !important;
+            letter-spacing: 0.005em !important;
+        }
+        > .cp-sidebarlayout-description {
+            margin-bottom: var(--obs-space-3) !important;
+        }
+
+        &:has(> .alert:only-child) {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+    }
+
+    // =========================================================================
+    //  DRIVE — file listing surfaces, path bar, row hover treatment
+    // =========================================================================
 
     #cp-app-drive-tree {
-        background-color: @cryptpad_color_grey_950 !important;
-        border-right: 1px solid fade(#494455, 15%) !important;
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-right: var(--obs-ghost-border-soft) !important;
+        padding-top: var(--obs-space-3) !important;
     }
     #cp-app-drive-content-container {
-        background-color: @cryptpad_color_grey_900 !important;
+        background-color: var(--obs-surface-low) !important;
     }
+
+    // The content column itself.  Upstream renders it flush against the
+    // splitter on the left (the <h1> has only 10px padding-left, the
+    // grid/list get 0), which makes the drive heading and first tile
+    // kiss the sidebar divider.  Add real horizontal breathing room so
+    // the content sits where the eye expects it.  Reserve the left
+    // `--obs-space-5` for the 16px wide .cp-splitter that sits absolutely
+    // over the left edge; `--obs-space-5 + 8px` keeps the content clear
+    // of the splitter's hover-border.
+    #cp-app-drive-content {
+        padding-left: calc(var(--obs-space-5) + 8px) !important;
+        padding-right: var(--obs-space-5) !important;
+        padding-top: var(--obs-space-3) !important;
+
+        // Upstream's h1 has `padding-left: 10px` — zero it since the
+        // parent now owns all horizontal padding.
+        h1 {
+            padding-left: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: var(--obs-space-3) !important;
+            font-family: 'Manrope', sans-serif !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+            color: var(--obs-on-surface) !important;
+        }
+    }
+    #cp-app-drive-toolbar {
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-bottom: var(--obs-ghost-border) !important;
+        padding: var(--obs-space-2) var(--obs-space-4) !important;
+    }
+
+    // Breadcrumb path bar
+    .cp-app-drive-path,
+    .cp-app-drive-path-inner {
+        background-color: transparent !important;
+        border: none !important;
+
+        .cp-app-drive-path-element {
+            border-radius: var(--obs-radius-sm) !important;
+            padding: 2px 6px !important;
+            color: var(--obs-on-surface-muted) !important;
+            transition: background-color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+            &.cp-app-drive-path-clickable:hover {
+                background-color: var(--obs-surface-high) !important;
+                color: var(--obs-on-surface) !important;
+            }
+        }
+    }
+
+    // File rows & grid tiles
     .cp-app-drive-element {
-        border-radius: 0.375rem !important;
-        transition: background-color 0.15s ease !important;
+        border-radius: var(--obs-radius-md) !important;
+        border: none !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast) !important;
 
         &:hover {
-            background-color: fade(@cryptpad_text_col, 5%) !important;
+            background-color: var(--obs-surface-container) !important;
         }
-        &.cp-app-drive-element-selected {
-            background-color: fade(#7C4DFF, 15%) !important;
+        &.cp-app-drive-element-selected,
+        &.cp-app-drive-element-selected:hover {
+            background-color: fade(#7C4DFF, 18%) !important;
+            outline: var(--obs-ghost-border) !important;
         }
+    }
+    .cp-app-drive-element-list {
+        padding: var(--obs-space-2) var(--obs-space-3) !important;
     }
     .cp-app-drive-element-header {
-        border-bottom: 1px solid fade(#494455, 15%) !important;
+        background-color: transparent !important;
+        border: none !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        color: var(--obs-on-surface-dim) !important;
+        font-size: 0.6875rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
     }
     .cp-app-drive-element-separator {
-        border-color: fade(#494455, 15%) !important;
+        border-color: rgba(73, 68, 85, 0.15) !important;
     }
-    .cp-app-drive-tree-category {
-        border-radius: 0.375rem !important;
+
+    // Grid tiles: inner icon square + ghost border, nested surface shift
+    div.cp-app-drive-content-grid .cp-app-drive-element-grid {
+        background-color: var(--obs-surface-container) !important;
+        border: none !important;
+        outline: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        padding: var(--obs-space-3) !important;
+
         &:hover {
-            background-color: fade(@cryptpad_text_col, 5%) !important;
-        }
-        &.cp-leftside-active {
-            background: linear-gradient(90deg, fade(#7C4DFF, 20%) 0%, transparent 100%) !important;
-            border-left: 3px solid #7C4DFF !important;
-        }
-    }
-    .cp-app-drive-path {
-        background-color: @cryptpad_color_grey_850 !important;
-        border-bottom: 1px solid fade(#494455, 10%) !important;
-    }
-
-    // =====================================================================
-    // 5. MODALS & DIALOGS — Glassmorphism + ambient shadow
-    // =====================================================================
-
-    .cp-modal-container,
-    .alertify .dialog {
-        background-color: @cryptpad_color_grey_800 !important;
-        border: 1px solid fade(#494455, 20%) !important;
-        border-radius: 0.75rem !important;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5),
-                    0 0 1px 1px rgba(255,255,255,0.05) !important;
-    }
-    .alertify .dialog > div {
-        background-color: transparent !important;
-    }
-
-    // Creation screen
-    .cp-creation-container {
-        background-color: @cryptpad_color_grey_800 !important;
-        border-radius: 0.75rem !important;
-    }
-    .cp-creation-template {
-        background-color: @cryptpad_color_grey_700 !important;
-        border-radius: 0.5rem !important;
-    }
-
-    // =====================================================================
-    // 6. DROPDOWNS & CONTEXT MENUS — Glassmorphism
-    // =====================================================================
-
-    .cp-dropdown-content,
-    .cp-dropdown-container .cp-dropdown-content,
-    .cp-context-menu {
-        background: fade(#1f1f22, 90%) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid fade(#ffffff, 5%) !important;
-        border-radius: 0.5rem !important;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5),
-                    0 0 1px 1px rgba(255,255,255,0.05) !important;
-        overflow: hidden !important;
-    }
-    .cp-dropdown-content a,
-    .cp-context-menu a {
-        transition: background-color 0.15s ease !important;
-        &:hover {
-            background-color: fade(@cryptpad_text_col, 8%) !important;
+            background-color: var(--obs-surface-high) !important;
         }
     }
 
-    // Tippy tooltips
-    .tippy-box {
-        background-color: @cryptpad_color_grey_700 !important;
-        border-radius: 0.375rem !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    // Thin out the Lucide icons used for file types, the sidebar disk
+    // glyph, and the "+" in the New tile.  Upstream ships Lucide's default
+    // stroke-width of 2, which reads as marker-thick against the quiet
+    // drive surfaces. Dropping it to 1.5 matches the top-bar icon weight
+    // we dialled in earlier so the whole app feels drawn with one nib.
+    //
+    // `vector-effect: non-scaling-stroke` keeps the line crisp at every
+    // tile size — browsers otherwise scale strokes with the viewBox when
+    // the SVG itself is resized, which would thicken the line back up at
+    // the larger thumbnail sizes.
+    #cp-app-drive-content svg,
+    #cp-app-drive-tree svg,
+    .cp-app-drive-element svg,
+    .cp-app-drive-element-grid svg,
+    .cp-app-drive-content-icon,
+    .cp-app-drive-icon-folder,
+    .cp-app-drive-new svg {
+        stroke-width: 1.5 !important;
+
+        & * {
+            stroke-width: 1.5 !important;
+            vector-effect: non-scaling-stroke !important;
+        }
     }
 
-    // =====================================================================
-    // 7. HOMEPAGE / INFO PAGES
-    // =====================================================================
+    // =========================================================================
+    //  BUTTONS
+    //  One shape for the whole system: rounded-md (8px). The previous mix of
+    //  pills + squared buttons created two visual vocabularies in the same
+    //  view (hero CTAs in pill, card actions in square). Everything now
+    //  speaks the same corner language; the primary/secondary/ghost
+    //  distinction is carried by fill + border instead of radius.
+    //
+    //  Primary: signature gradient + ghost highlight + ambient bloom.
+    //  Secondary / default: transparent + ghost border (lifts from bg
+    //    with border + shadow, doesn't add another gray card).
+    //  Tertiary: transparent + primary-bright text, underline on hover.
+    //  Icon: transparent + hover surface-high, squared rounded.
+    //  Danger: red-tinted gradient.
+    // =========================================================================
 
-    // Navbar
-    .navbar {
-        background-color: @cryptpad_color_grey_950 !important;
-        border-bottom: 1px solid fade(#494455, 15%) !important;
-        box-shadow: 0 4px 20px -4px rgba(0,0,0,0.4) !important;
-    }
-    .nav-link {
-        color: @cryptpad_text_col !important;
-        font-weight: 600 !important;
+    // Primary.  Gradient base + inset highlight + soft ambient violet bloom.
+    // The `position: relative` + `overflow: hidden` lets us paint a
+    // `::before` top-sheen that catches the light like polished acrylic.
+    .btn-primary,
+    .cp-toolbar-button-primary,
+    .cp-creation-button-pick,
+    .subscribe-btn,
+    .alertify .dialog button.ok,
+    .alertify .dialog button.btn-primary,
+    .cp-corner button.primary,
+    button.cp-btn-primary {
+        background: var(--obs-gradient) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        color: var(--obs-on-primary) !important;
+        font-weight: 700 !important;
         letter-spacing: 0.01em !important;
-        transition: color 0.2s ease !important;
-        &:hover {
-            color: #cdbdff !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 8px 20px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.2) inset,
+            0 -1px 0 rgba(0, 0, 0, 0.15) inset,
+            0 4px 14px -4px rgba(124, 77, 255, 0.5),
+            0 8px 24px -8px rgba(255, 138, 163, 0.35) !important;
+        transition: filter var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast),
+                    box-shadow var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &::before {
+            content: '' !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.2) 0%,
+                rgba(255, 255, 255, 0) 55%,
+                rgba(0, 0, 0, 0.12) 100%
+            ) !important;
+            pointer-events: none !important;
+            z-index: 0 !important;
+        }
+        > * { position: relative !important; z-index: 1 !important; }
+
+        &:hover, &:focus-visible {
+            filter: brightness(1.1) saturate(1.08) !important;
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.28) inset,
+                0 -1px 0 rgba(0, 0, 0, 0.15) inset,
+                0 6px 20px -4px rgba(124, 77, 255, 0.65),
+                0 10px 32px -8px rgba(255, 138, 163, 0.5) !important;
+        }
+        &:active {
+            transform: scale(0.97) !important;
+            filter: brightness(0.95) !important;
+        }
+        &:disabled,
+        &[disabled] {
+            background: var(--obs-surface-high) !important;
+            color: var(--obs-on-surface-dim) !important;
+            box-shadow: none !important;
+            filter: none !important;
+            cursor: not-allowed !important;
+
+            &::before { display: none !important; }
         }
     }
 
-    // App grid on homepage
-    .cp-app-grid {
-        background-color: @cryptpad_color_grey_800 !important;
-        border: 1px solid fade(#494455, 20%) !important;
-        border-radius: 0.75rem !important;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3) !important;
+    // Secondary / default — ghost style.  Transparent fill with a soft
+    // ghost border so the button lifts from its surface via line weight
+    // and a whisper of shadow rather than another layer of gray fill.
+    // On hover we warm the border toward violet and add a tint, so the
+    // button doesn't read as a hard filled chip at any state.
+    .btn-default,
+    .btn-secondary,
+    .alertify .dialog button.cancel,
+    .cp-corner button:not(.primary),
+    button.cp-btn-secondary {
+        background-color: transparent !important;
+        background-image: none !important;
+        border: var(--obs-button-border) !important;
+        color: var(--obs-on-surface) !important;
+        font-weight: 600 !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 8px 18px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    box-shadow var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+        &:hover, &:focus-visible {
+            background-color: rgba(124, 77, 255, 0.08) !important;
+            border: var(--obs-button-border-hover) !important;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(124, 77, 255, 0.15) !important;
+        }
+        &:active {
+            transform: scale(0.97) !important;
+        }
     }
 
-    // Instance title
-    h1.cp-instance-title,
-    .cp-title h1 {
-        font-family: 'Manrope', sans-serif !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.02em !important;
-        color: @cryptpad_color_brand !important;
-    }
-    .tag-line {
-        color: @cryptpad_color_grey_100 !important;
+    // Tertiary / link-styled — brand text, underline on hover
+    .btn-link {
+        background: transparent !important;
+        border: none !important;
+        color: var(--obs-primary-bright) !important;
+        font-weight: 600 !important;
+        padding: 4px 8px !important;
+        text-decoration: none !important;
+
+        &:hover {
+            color: #fff !important;
+            text-decoration: underline !important;
+            text-underline-offset: 3px !important;
+        }
     }
 
-    // Footer
-    .cp-version-footer {
-        border-top: 1px solid fade(#494455, 15%) !important;
+    // Danger.  Same construction as .btn-primary (inset highlight, ::before
+    // sheen, multi-layer ambient glow) but tuned to a crimson → coral ramp so
+    // the CTA reads as destructive without going near-black at the left edge.
+    // The starting hue sits at #c01a1a (not #9e0000) precisely because a 135°
+    // gradient otherwise paints the top-left corner ~black and that reads as
+    // a hard border artifact, not a gradient.
+    .btn-danger,
+    .alertify .dialog button.danger,
+    .cp-corner button.danger,
+    button.cp-btn-danger {
+        background: linear-gradient(135deg, #c01a1a 0%, #ff5a6e 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.01em !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 8px 20px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.22) inset,
+            0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+            0 4px 14px -4px rgba(192, 26, 26, 0.5),
+            0 8px 24px -8px rgba(255, 90, 110, 0.35) !important;
+        transition: filter var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast),
+                    box-shadow var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &::before {
+            content: '' !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.22) 0%,
+                rgba(255, 255, 255, 0) 55%,
+                rgba(0, 0, 0, 0.14) 100%
+            ) !important;
+            pointer-events: none !important;
+            z-index: 0 !important;
+        }
+        > * { position: relative !important; z-index: 1 !important; }
+
+        &:hover, &:focus-visible {
+            filter: brightness(1.1) saturate(1.06) !important;
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.3) inset,
+                0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+                0 6px 20px -4px rgba(192, 26, 26, 0.65),
+                0 10px 32px -8px rgba(255, 90, 110, 0.5) !important;
+        }
+        &:active {
+            transform: scale(0.97) !important;
+            filter: brightness(0.95) !important;
+        }
+        &:disabled,
+        &[disabled] {
+            background: var(--obs-surface-high) !important;
+            color: var(--obs-on-surface-dim) !important;
+            box-shadow: none !important;
+            filter: none !important;
+            cursor: not-allowed !important;
+
+            &::before { display: none !important; }
+        }
     }
 
-    // =====================================================================
-    // 8. FORMS & INPUTS
-    // =====================================================================
+    // Note: the generic .btn-primary / .btn-default rules above emit pill
+    // radii and extra box-shadows suited to standalone CTAs (dialog footers,
+    // navbar Register, corner popup actions, etc.). Inside .cp-toolbar the
+    // earlier scoped rules override those back to rounded-md with aligned
+    // heights so a row of buttons reads as one component.
+
+    // =========================================================================
+    //  INPUTS & FORMS
+    // =========================================================================
 
     input[type="text"],
     input[type="password"],
     input[type="email"],
     input[type="url"],
     input[type="number"],
+    input[type="search"],
     textarea,
     select,
     .cp-password-container input {
-        background-color: @cryptpad_color_grey_950 !important;
-        border: 1px solid fade(#494455, 30%) !important;
-        color: @cryptpad_text_col !important;
-        border-radius: 0.375rem !important;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+        background-color: var(--obs-surface-lowest) !important;
+        border: var(--obs-ghost-border) !important;
+        color: var(--obs-on-surface) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: 8px 12px !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-size: 0.875rem !important;
+        transition: border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    box-shadow var(--obs-dur-sm) var(--obs-ease-fast),
+                    background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
 
+        &::placeholder {
+            color: var(--obs-on-surface-dim) !important;
+            opacity: 0.75;
+        }
+        &:hover:not(:disabled):not(:focus) {
+            border-color: rgba(73, 68, 85, 0.4) !important;
+        }
         &:focus {
-            border-color: #7C4DFF !important;
-            box-shadow: 0 0 0 3px fade(#7C4DFF, 15%) !important;
+            border-color: var(--obs-primary) !important;
+            box-shadow: var(--obs-focus-ring) !important;
             outline: none !important;
         }
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
     }
 
-    // =====================================================================
-    // 9. CORNER POPUP (share, access, etc.)
-    // =====================================================================
-
-    .cp-corner {
-        background-color: @cryptpad_color_grey_800 !important;
-        border: 1px solid fade(#494455, 20%) !important;
-        border-radius: 0.75rem !important;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5) !important;
+    // Search inputs — squared like the rest of the system (the previous
+    // pill made the drive search feel like a different language from the
+    // drive's rounded-md cards).
+    input[type="search"],
+    input[type="text"].cp-search,
+    .cp-app-drive-toolbar input[type="text"],
+    #cp-app-drive-search-input {
+        border-radius: var(--obs-radius-md) !important;
+        padding-left: 14px !important;
     }
 
-    // =====================================================================
-    // 10. NOTIFICATIONS
-    // =====================================================================
-
-    .cp-notifications-container {
-        background-color: @cryptpad_color_grey_800 !important;
+    // Select dropdown arrow — align to Manrope metrics
+    select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 32px !important;
+        background-image: linear-gradient(45deg, transparent 50%, var(--obs-on-surface-muted) 50%),
+                          linear-gradient(135deg, var(--obs-on-surface-muted) 50%, transparent 50%);
+        background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+        background-size: 6px 6px, 6px 6px;
+        background-repeat: no-repeat;
     }
-    .cp-toolbar-notifications .cp-notifications-bell {
-        transition: color 0.2s ease !important;
+
+    // Labels
+    label {
+        color: var(--obs-on-surface-muted) !important;
+        font-weight: 600 !important;
+        font-size: 0.8125rem !important;
+        letter-spacing: 0.005em !important;
     }
 
-    // =====================================================================
-    // 11. TYPOGRAPHY — Headlines & Labels
-    // =====================================================================
+    // Checkboxes and radios — subtle primary tint
+    input[type="checkbox"]:checked,
+    input[type="radio"]:checked {
+        accent-color: var(--obs-primary);
+    }
 
-    h1, h2, h3 {
-        font-family: 'Manrope', sans-serif !important;
+    // =========================================================================
+    //  MODALS, DIALOGS, ALERTIFY
+    //
+    //  Dialogs are the brightest chrome surface in the app and should feel
+    //  architectural — lit from behind with violet, capped with a gradient
+    //  accent bar at the top, and seated on a frosted blur of the canvas
+    //  beneath.  The footer sits on a tonally recessed strip to visually
+    //  cradle the action buttons.
+    // =========================================================================
+
+    .cp-modal-container,
+    .alertify .dialog,
+    .alertify-notifier .ajs-message {
+        background:
+            radial-gradient(
+                600px 300px at 50% -40%,
+                rgba(124, 77, 255, 0.14) 0%,
+                transparent 60%
+            ),
+            linear-gradient(
+                180deg,
+                var(--obs-surface-container) 0%,
+                var(--obs-surface) 80%,
+                var(--obs-surface-low) 100%
+            ) !important;
+        border: 1px solid rgba(73, 68, 85, 0.35) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.06) inset,
+            var(--obs-shadow-ambient),
+            0 40px 80px -20px rgba(0, 0, 0, 0.7) !important;
+        color: var(--obs-on-surface) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate !important;
+    }
+    // Top gradient accent bar — violet → coral wash, 3px, seated above the
+    // dialog's rounded top edge.  A hairline highlight just below helps
+    // separate the bar from the dialog body.
+    .cp-modal-container::before,
+    .alertify .dialog::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        height: 3px !important;
+        background: var(--obs-gradient) !important;
+        z-index: 2 !important;
+        pointer-events: none !important;
+    }
+    .alertify .dialog > div {
+        background-color: transparent !important;
+        border-radius: var(--obs-radius-lg) !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    .alertify .dialog .cp-alertify-title,
+    .alertify .dialog h1,
+    .alertify .dialog h2 {
+        padding: var(--obs-space-4) var(--obs-space-5) !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        margin: 0 0 var(--obs-space-4) !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em !important;
-        line-height: 1.15 !important;
     }
-    h1 {
-        font-weight: 800 !important;
-        letter-spacing: -0.02em !important;
-        line-height: 1.1 !important;
+    .alertify .dialog .ajs-body {
+        padding: 0 var(--obs-space-5) var(--obs-space-4) !important;
+    }
+    // Footer strip — cradles the action buttons in a lower tone so they
+    // read as "decisions", separate from the content area above.
+    .alertify .dialog nav,
+    .alertify .dialog .ajs-footer {
+        padding: var(--obs-space-4) var(--obs-space-5) !important;
+        border-top: 1px solid rgba(73, 68, 85, 0.25) !important;
+        background: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.25) 0%,
+            rgba(0, 0, 0, 0.4) 100%
+        ) !important;
+        border-bottom-left-radius: var(--obs-radius-lg) !important;
+        border-bottom-right-radius: var(--obs-radius-lg) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+    }
+    .alertify .dialog nav button + button,
+    .alertify .dialog .ajs-footer button + button {
+        margin-left: var(--obs-space-2) !important;
     }
 
-    // =====================================================================
-    // 12. SPLITTER (resizable panel divider)
-    // =====================================================================
+    // Tab bar at the top of tabbed dialogs (Share → Contacts / Link / Embed).
+    // Upstream: underline-only indicator.  Here: rounded tab chips with a
+    // gradient fill on the active tab so they match the rest of the system.
+    .alertify-tabs {
+        display: flex !important;
+        flex-flow: column !important;
+    }
+    .alertify-tabs-titles {
+        display: flex !important;
+        gap: var(--obs-space-1) !important;
+        padding: var(--obs-space-3) var(--obs-space-5) 0 !important;
+        margin: 0 !important;
+        border-bottom: 1px solid rgba(73, 68, 85, 0.25) !important;
+        background: transparent !important;
+    }
+    .alertify-tabs-title {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: var(--obs-space-2) !important;
+        padding: 10px 16px !important;
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        color: var(--obs-on-surface-muted) !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        border-bottom: none !important;
+        border-radius: var(--obs-radius-md) var(--obs-radius-md) 0 0 !important;
+        cursor: pointer !important;
+        position: relative !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &:hover:not(.disabled) {
+            background-color: var(--obs-surface-high) !important;
+            color: var(--obs-on-surface) !important;
+        }
+        &.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        svg {
+            width: 16px !important;
+            height: 16px !important;
+            color: currentColor !important;
+        }
+    }
+    // Active tab: violet border with bottom-sealed gradient wash so the tab
+    // visually fuses into the content panel below.
+    .alertify-tabs-title.alertify-tabs-active {
+        color: #fff !important;
+        background: linear-gradient(
+            180deg,
+            rgba(124, 77, 255, 0.22) 0%,
+            rgba(124, 77, 255, 0.08) 100%
+        ) !important;
+        border-color: rgba(124, 77, 255, 0.55) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    .alertify-tabs-title.alertify-tabs-active::after {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: -1px !important;
+        height: 2px !important;
+        background: var(--obs-gradient) !important;
+    }
+    .alertify-tabs-contents {
+        padding: var(--obs-space-5) !important;
+    }
+    .alertify-tabs-content {
+        display: none !important;
+    }
+    .alertify-tabs-content.alertify-tabs-content-active {
+        display: block !important;
+    }
+
+    // Inline alerts inside dialogs (share warning, burn-after-reading, team
+    // invite warning).  Upstream renders as a plain Bootstrap .alert — flat
+    // yellow/red box with a tiny close span that has no cursor.  Redesign
+    // with tonal gradient, left accent bar matching severity, and an actual
+    // hit-targetted close button.
+    body .alert,
+    .cp-teams-invite-alert {
+        margin: var(--obs-space-3) 0 !important;
+        // Breathier internal padding + looser typography so notices read as
+        // prose blocks rather than cramped rails.  Line-height 1.7 and a
+        // whisker of letter-spacing open up the copy without making it loud.
+        padding: var(--obs-space-4) var(--obs-space-5) !important;
+        border: 1px solid rgba(73, 68, 85, 0.3) !important;
+        border-left-width: 3px !important;
+        border-radius: var(--obs-radius-md) !important;
+        font-size: 0.875rem !important;
+        line-height: 1.7 !important;
+        letter-spacing: 0.005em !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: var(--obs-space-3) !important;
+    }
+    // `.cp-sidebar-bigger-alert` is the variant used for top-of-page notices
+    // (admin general info banner, teams onboarding, etc.).  Give it another
+    // step up in padding + type so it anchors the section clearly.
+    body .alert.cp-sidebar-bigger-alert {
+        padding: var(--obs-space-5) var(--obs-space-5) !important;
+        font-size: 1rem !important;
+        line-height: 1.75 !important;
+        letter-spacing: 0.01em !important;
+    }
+    body .alert.alert-warning {
+        background: linear-gradient(
+            180deg,
+            rgba(234, 179, 8, 0.12) 0%,
+            rgba(234, 179, 8, 0.06) 100%
+        ) !important;
+        border-color: rgba(234, 179, 8, 0.3) !important;
+        border-left-color: #eab308 !important;
+        color: #fde68a !important;
+    }
+    body .alert.alert-danger {
+        background: linear-gradient(
+            180deg,
+            rgba(239, 68, 68, 0.15) 0%,
+            rgba(239, 68, 68, 0.07) 100%
+        ) !important;
+        border-color: rgba(239, 68, 68, 0.35) !important;
+        border-left-color: #ef4444 !important;
+        color: #fecaca !important;
+    }
+    body .alert.alert-info,
+    body .alert.alert-primary {
+        background: linear-gradient(
+            180deg,
+            rgba(124, 77, 255, 0.15) 0%,
+            rgba(124, 77, 255, 0.06) 100%
+        ) !important;
+        border-color: rgba(124, 77, 255, 0.35) !important;
+        border-left-color: var(--obs-primary) !important;
+        color: var(--obs-primary-bright) !important;
+    }
+    body .alert.alert-success {
+        background: linear-gradient(
+            180deg,
+            rgba(34, 197, 94, 0.14) 0%,
+            rgba(34, 197, 94, 0.06) 100%
+        ) !important;
+        border-color: rgba(34, 197, 94, 0.3) !important;
+        border-left-color: #22c55e !important;
+        color: #bbf7d0 !important;
+    }
+    // Dismiss affordance inside a `.dismissable` alert — upstream renders it
+    // as a plain <span> (no class, no cursor), so it doesn't read as
+    // interactive. Give it a proper hit target + hover state.
+    body .alert.dismissable > span:last-child,
+    .cp-teams-invite-alert > span:last-child {
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+        width: 28px !important;
+        height: 28px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: var(--obs-radius-sm) !important;
+        color: inherit !important;
+        opacity: 0.6 !important;
+        cursor: pointer !important;
+        transition: background-color var(--obs-dur-xs) var(--obs-ease-fast),
+                    opacity var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            opacity: 1 !important;
+        }
+        svg {
+            width: 14px !important;
+            height: 14px !important;
+            margin: 0 !important;
+        }
+    }
+    .cp-inline-alert-text {
+        flex: 1 !important;
+    }
+
+    // Overlay / cover — frosted blur of whatever's beneath, with a faint
+    // violet haze to warm the background against the dialog's cooler tone.
+    .alertify .cover,
+    .alertify-notifier,
+    .cp-modal-overlay {
+        background:
+            radial-gradient(
+                80% 60% at 50% 40%,
+                rgba(124, 77, 255, 0.06) 0%,
+                transparent 70%
+            ),
+            rgba(6, 6, 10, 0.6) !important;
+        backdrop-filter: blur(8px) saturate(1.1) !important;
+        -webkit-backdrop-filter: blur(8px) saturate(1.1) !important;
+    }
+
+    // Radio and checkbox rows inside the share dialog and similar modals —
+    // give them breathing room and align label typography.
+    .cp-modal-container .radio-group,
+    .alertify .dialog .radio-group,
+    .cp-share-modal .radio-group {
+        display: flex !important;
+        gap: var(--obs-space-5) !important;
+        margin: var(--obs-space-2) 0 var(--obs-space-4) !important;
+    }
+    .cp-share-modal label,
+    .cp-modal-container label {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: var(--obs-space-2) !important;
+        cursor: pointer !important;
+        color: var(--obs-on-surface) !important;
+        font-weight: 500 !important;
+    }
+
+    // Creation dialog — `#cp-creation` is the card, `#cp-creation-container`
+    // is the full-page overlay.  The card matches the home-page `.cp-app-grid`
+    // treatment exactly: near-transparent glass wash, ghost border, and the
+    // same violet ambient glow — so it reads as part of the same vocabulary.
+    #cp-creation-container {
+        background: radial-gradient(
+            ellipse 80% 60% at 50% 30%,
+            rgba(124, 77, 255, 0.07) 0%,
+            rgba(0, 0, 0, 0.72) 60%,
+            rgba(0, 0, 0, 0.88) 100%
+        ) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+    }
+    #cp-creation {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.3),
+            0 12px 32px -16px rgba(124, 77, 255, 0.28) !important;
+    }
+    // Legacy class fallback (drag-to-create path)
+    .cp-creation-container {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.3),
+            0 12px 32px -16px rgba(124, 77, 255, 0.28) !important;
+        padding: var(--obs-space-5) !important;
+    }
+    .cp-creation-template {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: var(--obs-space-4) !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    transform var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+            transform: translateY(-1px);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Calendar event popup (new event / edit event dialog)
+    //
+    //  DOM (toast-ui calendar lib, wrapped by www/calendar/app-calendar.less):
+    //    .tui-full-calendar-floating-layer.cp-calendar-popup-flex   ← overlay
+    //      └─ .tui-full-calendar-popup                              ← frame
+    //           └─ .tui-full-calendar-popup-container               ← body
+    //
+    //  Upstream gives this a flat @cp_flatpickr-bg + thin border and no
+    //  shadow — which reads as a floating card that doesn't belong to the
+    //  rest of the Obsidian dialog system. Lift it to match the
+    //  `.alertify .dialog` treatment: surface gradient, ghost border,
+    //  ambient + deep drop shadow, violet→coral accent bar at the top,
+    //  seated on a frosted blur of the calendar grid beneath.
+    // -------------------------------------------------------------------------
+
+    // Backdrop — tint and blur the canvas behind the popup so the modal
+    // reads as lifted above its context. Upstream doesn't darken this
+    // layer at all, which leaves the calendar grid fully legible behind
+    // the event form and flattens the sense of depth.
+    .cp-calendar-popup-flex {
+        background: radial-gradient(
+            1000px 600px at 50% 20%,
+            rgba(124, 77, 255, 0.10) 0%,
+            rgba(0, 0, 0, 0.55) 65%,
+            rgba(0, 0, 0, 0.7) 100%
+        ) !important;
+        backdrop-filter: blur(8px) saturate(1.1) !important;
+        -webkit-backdrop-filter: blur(8px) saturate(1.1) !important;
+    }
+
+    // Modal frame.  `.tui-full-calendar-popup` is the positioning box
+    // upstream gives a fixed width to (see app-calendar.less).  We seat
+    // the full dialog treatment there so every variant of the popup (add
+    // event, edit event, detail view) inherits it automatically.
+    .tui-full-calendar-popup {
+        background:
+            radial-gradient(
+                600px 300px at 50% -40%,
+                rgba(124, 77, 255, 0.14) 0%,
+                transparent 60%
+            ),
+            linear-gradient(
+                180deg,
+                var(--obs-surface-container) 0%,
+                var(--obs-surface) 80%,
+                var(--obs-surface-low) 100%
+            ) !important;
+        border: 1px solid rgba(73, 68, 85, 0.35) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow:
+            0 1px 0 rgba(255, 255, 255, 0.06) inset,
+            var(--obs-shadow-ambient),
+            0 40px 80px -20px rgba(0, 0, 0, 0.7) !important;
+        color: var(--obs-on-surface) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate !important;
+    }
+
+    // Violet → coral gradient hairline at the top, matching the accent
+    // bar used on every other Obsidian dialog/modal.
+    .tui-full-calendar-popup::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        height: 3px !important;
+        background: var(--obs-gradient) !important;
+        z-index: 2 !important;
+        pointer-events: none !important;
+    }
+
+    // The inner container upstream paints with a solid `@cp_flatpickr-bg`
+    // plus its own border-radius — that would stamp over the gradient we
+    // just applied to the frame. Strip the bg, keep layout behaviour.
+    .tui-full-calendar-popup-container {
+        background: transparent !important;
+        color: var(--obs-on-surface) !important;
+        border: none !important;
+        border-radius: var(--obs-radius-lg) !important;
+        padding: var(--obs-space-5) !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    // The popup's own close button (top-right X) — upstream ships it with
+    // a hard border that clashed with the new frame. Turn it into the
+    // same quiet icon button we use on notifications/corner popups.
+    .tui-full-calendar-popup-close {
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-sm) !important;
+        background-color: transparent !important;
+        color: var(--obs-on-surface-muted) !important;
+        opacity: 0.8 !important;
+        transition: opacity var(--obs-dur-sm) var(--obs-ease-fast),
+                    background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &:hover {
+            opacity: 1 !important;
+            background-color: var(--obs-surface-high) !important;
+            color: var(--obs-on-surface) !important;
+        }
+    }
+
+    // Form field normalization inside the event popup.
+    //
+    // Two quirks create visual inconsistency here:
+    //  1. toast-ui's base CSS paints `.tui-full-calendar-popup-section-item`
+    //     with a hard `1px solid #d5d5d5`, which reads as a prominent
+    //     light border on Title / Location.  It's partly neutralized in
+    //     app-calendar.less but not for every descendant — and our own
+    //     `--obs-ghost-border` on generic inputs still stamps a visible
+    //     hairline onto the Title, Location, and Description textarea
+    //     (while the narrower date inputs read as essentially borderless).
+    //  2. `.cp-notif-entry` (the "1 Hours before" row) is painted with
+    //     `fade(text, 10%)` upstream — a light chip that breaks the
+    //     flat dark rhythm of the rest of the form.
+    //
+    // Normalize: every control reads as a flat dark surface, no resting
+    // border.  Focus state still lights up the primary border + focus
+    // ring (inherited from the global input rule), so accessibility /
+    // keyboard affordances stay intact.
+    .tui-full-calendar-popup {
+        input[type="text"],
+        input[type="number"],
+        input[type="search"],
+        textarea,
+        select {
+            background-color: var(--obs-surface-lowest) !important;
+            border: 1px solid transparent !important;
+            box-shadow: none !important;
+        }
+
+        // toast-ui puts its own border on the section-item wrapper.
+        // Strip it so the inputs inside set the look, not the wrapper.
+        .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-start-date .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-end-date .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-start-date:hover .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-end-date:hover .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-start-date:focus .tui-full-calendar-popup-section-item,
+        .tui-full-calendar-section-end-date:focus .tui-full-calendar-popup-section-item {
+            border-color: transparent !important;
+        }
+
+        // Description textarea — upstream wraps it in a section with its
+        // own border/padding; the CodeMirror path (not used here in the
+        // new-event popup but kept for the detail view) gets the same
+        // treatment so both look the same if the markup flips.
+        .CodeMirror {
+            background-color: var(--obs-surface-lowest) !important;
+            border: 1px solid transparent !important;
+            border-radius: var(--obs-radius-md) !important;
+            box-shadow: none !important;
+        }
+        .CodeMirror-scroll,
+        .CodeMirror-gutters {
+            background-color: var(--obs-surface-lowest) !important;
+            border: none !important;
+        }
+
+        // Reminder entry ("1 Hours before ×") — drop the 10%-text chip
+        // background and match the rest of the form. The close × inside
+        // it keeps its affordance from the global button rules.
+        .cp-notif-entry {
+            background-color: var(--obs-surface-lowest) !important;
+            border: 1px solid transparent !important;
+            border-radius: var(--obs-radius-md) !important;
+            padding: 6px 8px !important;
+        }
+    }
+
+    // =========================================================================
+    //  DROPDOWNS, CONTEXT MENUS, TIPPY
+    //  All glass-panel.
+    // =========================================================================
+
+    .cp-dropdown-content,
+    .cp-dropdown-container .cp-dropdown-content,
+    .cp-context-menu,
+    .contextMenu {
+        background: var(--obs-glass-bg-strong) !important;
+        backdrop-filter: blur(14px) saturate(1.1) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(1.1) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        box-shadow: var(--obs-shadow-ambient) !important;
+        overflow: hidden !important;
+        padding: var(--obs-space-1) !important;
+    }
+    .cp-dropdown-content a,
+    .cp-dropdown-content li a,
+    .cp-context-menu a,
+    .cp-context-menu li a,
+    .contextMenu li a {
+        border-radius: var(--obs-radius-sm) !important;
+        padding: 8px 12px !important;
+        margin: 1px 0 !important;
+        color: var(--obs-on-surface) !important;
+        font-size: 0.875rem !important;
+        transition: background-color var(--obs-dur-xs) var(--obs-ease-fast),
+                    color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+        &:hover, &:focus {
+            background-color: fade(#7C4DFF, 18%) !important;
+            color: #fff !important;
+        }
+    }
+    .cp-dropdown-content hr {
+        border: none !important;
+        border-top: var(--obs-ghost-border-soft) !important;
+        margin: var(--obs-space-1) 0 !important;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Account menu (dropdown anchored under the top-right avatar button)
+    //
+    //  DOM (createUserAdminMenu in www/common/common-ui-elements.js):
+    //    .cp-toolbar-user-dropdown
+    //      ├─ button           (the avatar)
+    //      └─ .cp-dropdown-menu-container
+    //           └─ ul.cp-dropdown-content
+    //                ├─ li (cp-user-menu-logo)     ← suppressed below
+    //                ├─ li (cp-toolbar-account)    ← name + display-name info
+    //                ├─ li > a.cp-toolbar-menu-*   ← Profile / Teams / …
+    //                └─ li > hr, etc.
+    //
+    //  Goals: calmer typography (no uppercase / tight tracking leaking in
+    //  from the avatar label style), more vertical rhythm per row, real
+    //  breathing between Account Name and Display Name, and no duplicated
+    //  CryptPad wordmark at the top of the menu.
+    // -------------------------------------------------------------------------
+
+    // Drop the CryptPad shield-logo banner at the top of the menu. The
+    // avatar button already identifies the user and the bar above it
+    // carries the product identity — a second wordmark just adds noise.
+    .cp-toolbar-user-dropdown .cp-user-menu-logo {
+        display: none !important;
+    }
+
+    // Reset to normal-case, Manrope 500 body type inside the menu. This
+    // overrides any micro-label tracking that might still reach in from
+    // global selectors, and brings the menu in line with the rest of the
+    // UI (sidebars, popovers) which use sentence case.
+    .cp-toolbar-user-dropdown .cp-dropdown-content,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li > * {
+        text-transform: none !important;
+        letter-spacing: -0.003em !important;
+        font-weight: 500 !important;
+        font-family: 'Manrope', sans-serif !important;
+    }
+
+    // Menu rows: more padding, explicit icon + label flex so the icon
+    // stays a quiet 18px glyph aligned to the label baseline.
+    .cp-toolbar-user-dropdown .cp-dropdown-content a,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a {
+        padding: 10px 14px !important;
+        margin: 2px 4px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        line-height: 1.25 !important;
+        font-size: 0.875rem !important;
+        color: var(--obs-on-surface) !important;
+    }
+    // Row content is a single wrapping span that holds both the icon SVG
+    // and the label text (see `createUserAdminMenu` in
+    // www/common/common-ui-elements.js —
+    //   `h('span', [Icons.get(name)], Messages.label)`).
+    //
+    // Treat that span as the real flex row: icon on the left, label on
+    // the right, both aligned to the same baseline with a fixed gap.
+    // Letting it stretch to 100% width anchors long labels like
+    // "Administration" / "Log out everywhere" / "About CryptPad" to the
+    // left edge instead of letting them centre-overflow out of the menu.
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: var(--obs-on-surface) !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    // The actual glyph (svg / lucide icon / <i>) is the span's direct
+    // child node that gets sized + dimmed.  Text label after it just
+    // inherits from the <a>.
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child > .lucide,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child > i,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child > .lucide,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child > i {
+        flex: 0 0 auto !important;
+        width: 18px !important;
+        height: 18px !important;
+        color: var(--obs-on-surface-dim) !important;
+    }
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child > svg *,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a > span:first-child > .lucide *,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child > svg *,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a > span:first-child > .lucide * {
+        stroke-width: 1.75 !important;
+        vector-effect: non-scaling-stroke !important;
+    }
+    // On hover, the icon lifts to full-on text color so the whole row
+    // reads as a single lit-up target rather than glyph + label at
+    // different brightness.
+    .cp-toolbar-user-dropdown .cp-dropdown-content a:hover > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a:focus > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a:hover > span:first-child > .lucide,
+    .cp-toolbar-user-dropdown .cp-dropdown-content a:focus > span:first-child > .lucide,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a:hover > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a:focus > span:first-child > svg,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a:hover > span:first-child > .lucide,
+    .cp-toolbar-user-dropdown .cp-dropdown-content li a:focus > span:first-child > .lucide {
+        color: #fff !important;
+    }
+
+    // Account-info block: upstream markup is
+    //   <div.cp-toolbar-account>
+    //     <span>Account name: <span>…</span></span>
+    //     <br>
+    //     <span>Display name: <span>…</span></span>
+    //   </div>
+    // The <br> gives almost no vertical gap, which is why the two rows
+    // read as one wall. Suppress the <br>, promote each outer span to a
+    // block, and space them with a margin. Label gets a dim caption
+    // treatment; the wrapped inner span carries the value at full brightness.
+    .cp-toolbar-user-dropdown .cp-toolbar-account {
+        padding: 12px 14px 14px !important;
+        margin: 2px 4px 4px !important;
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        font-size: 0.8125rem !important;
+        line-height: 1.35 !important;
+
+        br { display: none !important; }
+
+        & > span {
+            display: block !important;
+            margin: 0 !important;
+            color: var(--obs-on-surface-dim) !important;
+            font-weight: 500 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+        & > span + span {
+            margin-top: 10px !important;
+        }
+        // The inner span carries the actual value (account name, display
+        // name). Brighter color and a slightly heavier weight lets it
+        // lead without needing to be a separate row.
+        & > span > span {
+            color: var(--obs-on-surface) !important;
+            font-weight: 600 !important;
+            margin-left: 4px !important;
+        }
+    }
+
+    // Separators inside the account menu: give them slightly more vertical
+    // air than the generic 4px in other dropdowns — the menu is taller
+    // and the extra breathing keeps the grouping legible.
+    .cp-toolbar-user-dropdown .cp-dropdown-content hr {
+        margin: 6px 8px !important;
+    }
+
+    // Tippy tooltips
+    .tippy-box {
+        background-color: var(--obs-glass-bg-strong) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-sm) !important;
+        box-shadow: var(--obs-shadow-floating) !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        padding: 4px 8px !important;
+        color: var(--obs-on-surface) !important;
+    }
+    .tippy-box .tippy-arrow {
+        color: var(--obs-surface-highest) !important;
+    }
+
+    // =========================================================================
+    //  CORNER POPUP (announcements, tips, support)
+    // =========================================================================
+
+    .cp-corner-container,
+    .cp-corner {
+        background-color: var(--obs-surface-container) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow: var(--obs-shadow-ambient) !important;
+        padding: var(--obs-space-4) !important;
+    }
+    .cp-corner-actions {
+        margin-top: var(--obs-space-3) !important;
+        gap: var(--obs-space-2) !important;
+    }
+
+    // =========================================================================
+    //  NOTIFICATIONS
+    // =========================================================================
+
+    .cp-notifications-container {
+        background: var(--obs-glass-bg-strong) !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        box-shadow: var(--obs-shadow-ambient) !important;
+        padding: var(--obs-space-1) !important;
+    }
+    .cp-notification {
+        border-radius: var(--obs-radius-sm) !important;
+        border: none !important;
+        padding: var(--obs-space-2) var(--obs-space-3) !important;
+        transition: background-color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+
+        &:hover {
+            background-color: var(--obs-surface-high) !important;
+        }
+    }
+    .cp-notification-dismiss {
+        opacity: 0.55;
+        transition: opacity var(--obs-dur-xs) var(--obs-ease-fast) !important;
+        &:hover { opacity: 1; }
+    }
+
+    // =========================================================================
+    //  MESSENGER / CHAT PANEL
+    // =========================================================================
+
+    .cp-app-contacts-messages,
+    .cp-app-contacts-messagebox,
+    .cp-app-contacts-info {
+        background-color: var(--obs-surface-lowest) !important;
+    }
+    .cp-app-contacts-channel {
+        border-bottom: var(--obs-ghost-border-soft) !important;
+        &:hover { background-color: var(--obs-surface-container) !important; }
+        &.cp-app-contacts-active {
+            background: var(--obs-gradient-soft) !important;
+        }
+    }
+
+    // =========================================================================
+    //  BADGES, CHIPS, TAGS — micro-monoliths
+    // =========================================================================
+
+    .cp-badge {
+        background: rgba(255, 255, 255, 0.015) !important;
+        color: var(--obs-on-surface) !important;
+        border-radius: var(--obs-radius-sm) !important;
+        padding: 2px 10px !important;
+        border: var(--obs-ghost-border) !important;
+    }
+
+    // "admin / moderator / premium / error" badges keep their accent colors but
+    // inherit pill geometry and label-sm typography via the rule above.
+
+    // =========================================================================
+    //  LOADING SCREEN
+    // =========================================================================
+
+    // The outer `#cp-loading` already paints the full-screen scrim; the
+    // inner `.cp-loading-container` / `.cp-loading-spinner-container`
+    // should be free-floating containers for the text + progress visuals,
+    // not extra dark cards stacked on top of the scrim.  Keep them
+    // transparent so the "Update content" label and the gradient bar sit
+    // directly on the page background.
+    .cp-loading-container,
+    .cp-loading-spinner-container,
+    .cp-loading-spinner-container .loadingContainer {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    // Progress bar track — keep it as a faint hairline rail, not a filled
+    // dark pill, so it reads as a guide behind the gradient value rather
+    // than a second dark card.
+    .cp-loading-progress-bar {
+        background-color: rgba(255, 255, 255, 0.04) !important;
+        border: none !important;
+        border-radius: var(--obs-radius-pill) !important;
+        overflow: hidden;
+    }
+    .cp-loading-progress-bar-value {
+        background: var(--obs-gradient) !important;
+        border-radius: var(--obs-radius-pill) !important;
+    }
+    // Spinner status line (`<p id="cp-loading-message">` + the progress
+    // list text) should read as free text on the scrim — no card chrome.
+    #cp-loading-spinner-message,
+    .cp-loading-progress-list {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    // =========================================================================
+    //  SPLITTER — subtle ghost line, primary on hover
+    // =========================================================================
 
     .cp-splitter {
-        background-color: fade(#494455, 30%) !important;
+        background-color: rgba(73, 68, 85, 0.2) !important;
+        transition: background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
         &:hover {
-            background-color: fade(#7C4DFF, 40%) !important;
+            background-color: fade(#7C4DFF, 45%) !important;
         }
     }
 
-    // =====================================================================
-    // 13. KANBAN
-    // =====================================================================
+    // =========================================================================
+    //  SCROLLBAR — thin, primary-tinted
+    // =========================================================================
 
-    .cp-kanban-board {
-        background-color: @cryptpad_color_grey_700 !important;
-        border-radius: 0.5rem !important;
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(205, 189, 255, 0.22) transparent;
     }
-    .cp-kanban-card {
-        background-color: @cryptpad_color_grey_800 !important;
-        border: 1px solid fade(#494455, 20%) !important;
-        border-radius: 0.375rem !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-    }
-
-    // =====================================================================
-    // 14. CODE EDITOR
-    // =====================================================================
-
-    .cp-app-code {
-        .CodeMirror {
-            font-family: 'Manrope', monospace !important;
-        }
-    }
-
-    // =====================================================================
-    // 15. SCROLLBAR — Obsidian violet tint
-    // =====================================================================
-
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -379,55 +2590,908 @@
         background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-        background: fade(#cdbdff, 20%);
-        border-radius: 4px;
-        &:hover {
-            background: fade(#cdbdff, 35%);
-        }
+        background: rgba(205, 189, 255, 0.22);
+        border-radius: var(--obs-radius-pill);
+        &:hover { background: rgba(205, 189, 255, 0.4); }
+    }
+    ::-webkit-scrollbar-corner {
+        background: transparent;
     }
 
-    // =====================================================================
-    // 16. LINKS — Brand-tinted
-    // =====================================================================
+    // =========================================================================
+    //  LINKS
+    // =========================================================================
 
     a {
-        color: @cryptpad_color_brand_300 !important;
-        transition: color 0.15s ease !important;
+        color: var(--obs-primary-bright) !important;
+        text-decoration: none;
+        transition: color var(--obs-dur-xs) var(--obs-ease-fast) !important;
+    }
+    a:hover {
+        color: #fff !important;
+        text-decoration: underline !important;
+        text-underline-offset: 3px !important;
+    }
+    a:visited {
+        color: var(--obs-primary-bright) !important;
+    }
+
+    // =========================================================================
+    //  KANBAN — chrome-only styling (board + card shells). The card's inner
+    //  content is left alone so app-level state rendering stays intact.
+    // =========================================================================
+
+    .cp-kanban-board {
+        background-color: var(--obs-surface-container) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        padding: var(--obs-space-3) !important;
+    }
+    .cp-kanban-card {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        box-shadow: var(--obs-shadow-floating) !important;
+        transition: transform var(--obs-dur-xs) var(--obs-ease-fast),
+                    background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
         &:hover {
-            color: lighten(@cryptpad_color_brand_300, 10%) !important;
+            background-color: var(--obs-surface-bright) !important;
+            transform: translateY(-1px);
         }
     }
 
-    // =====================================================================
-    // 17. BADGES & TAGS
-    // =====================================================================
+    // =========================================================================
+    //  FORM (form creator chrome)
+    //
+    //  The form builder is the canonical "many-containers" app — question
+    //  cards stacked down the page, a settings panel in the sidebar, and a
+    //  palette of block-type buttons at the bottom. Upstream fills every
+    //  one of those with an opaque `@cp_form-bg1` gray, producing a stack
+    //  of flat, identical gray cards with hard edges.
+    //
+    //  Obsidian Flow's container grammar is the opposite: the *line* (ghost
+    //  border) and the *lift* (soft shadow) carry the container; the fill
+    //  stays transparent or near-transparent so the ambient violet bloom
+    //  from `body` reads through. That lets a dense UI (like a form with
+    //  ten question cards) feel calm instead of quilted.
+    // =========================================================================
 
-    .cp-badge {
-        border-radius: 999px !important;
-        font-size: 0.6875rem !important;
+    // Question cards: ditch the opaque gray for a ghost-bordered surface
+    // with a whisper of violet drop-shadow. The card still reads as its
+    // own container — just via line + shadow instead of another gray fill.
+    .cp-form-creator-content .cp-form-block,
+    .cp-form-creator-results .cp-form-block {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: var(--obs-space-4) !important;
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.25),
+            0 8px 24px -16px rgba(124, 77, 255, 0.18) !important;
+        transition: border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                    box-shadow var(--obs-dur-sm) var(--obs-ease-fast) !important;
+    }
+    .cp-form-creator-content .cp-form-block:hover,
+    .cp-form-creator-content .cp-form-block:focus-within {
+        border-color: rgba(124, 77, 255, 0.32) !important;
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.3),
+            0 12px 32px -16px rgba(124, 77, 255, 0.28) !important;
+    }
+    // The "+ add" rail and drag handles sit inside the card — make sure the
+    // new transparent fill doesn't leak their chrome through.
+    .cp-form-creator-content .cp-form-block .cp-form-block-arrows,
+    .cp-form-creator-content .cp-form-block .cp-form-block-drag-handle {
+        background: transparent !important;
+    }
+
+    // Form settings panel (left sidebar card).
+    .cp-form-creator-settings div.cp-form-settings-preview {
+        background: rgba(255, 255, 255, 0.015) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: var(--obs-space-4) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+    // Settings panel typography: the section titles upstream use plain
+    // `font-weight: bold` (700) which reads much heavier than Manrope 700
+    // body text would elsewhere — the result is that every label in the
+    // panel looks like a heading and it all flattens together.  Demote
+    // titles to 600 and gently tone the body text down so the panel reads
+    // as a labelled info block, not a stack of headings.
+    .cp-form-creator-settings div.cp-form-settings-preview {
+        .cp-form-setting-title {
+            font-weight: 600 !important;
+            font-size: 0.8125rem !important;
+            letter-spacing: 0.03em !important;
+            text-transform: uppercase !important;
+            color: var(--obs-on-surface-muted) !important;
+        }
+        // Everything else in the panel (status lines, allowances) sits
+        // one weight lighter than the titles so the hierarchy is readable
+        // without bold-on-bold.
+        & > *:not(.cp-form-setting-title) {
+            font-weight: 400 !important;
+            color: var(--obs-on-surface) !important;
+        }
+    }
+
+    // Sidebar action cluster: "Responses / Preview form / Copy public link"
+    //
+    // Upstream renders two as `.btn-primary` (big violet gradient fills)
+    // and the responses button as `.btn-default`, which produces two
+    // visually incompatible button styles in a three-button stack.
+    //
+    // Treatment: dark fill, gradient *border*. We pull the signature
+    // violet→coral gradient out of the button face and paint it only on
+    // the border using the `padding-box / border-box` background-clip
+    // trick, so all three buttons share one silhouette: dark body, lit
+    // edge. The primary button's sheen `::before` is suppressed — the
+    // gradient edge carries the brand note on its own.
+    .cp-forms-results-participant {
+        display: flex !important;
+        flex-flow: column !important;
+        gap: var(--obs-space-2) !important;
+
+        button,
+        button.btn,
+        button.btn-primary,
+        button.btn-default,
+        button.btn-secondary,
+        button.cp-toolbar-form-button {
+            // Dark inner fill painted onto padding-box, gradient painted
+            // onto border-box. The 2px transparent border becomes the
+            // visible surface for the gradient.
+            background:
+                linear-gradient(
+                    var(--obs-surface-low),
+                    var(--obs-surface-low)
+                ) padding-box,
+                var(--obs-gradient) border-box !important;
+            border: 2px solid transparent !important;
+            border-radius: var(--obs-radius-md) !important;
+            color: var(--obs-on-surface) !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.04em !important;
+            text-transform: uppercase !important;
+            font-size: 0.8125rem !important;
+            padding: 10px 16px !important;
+            min-height: 44px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.25),
+                0 6px 20px -10px rgba(124, 77, 255, 0.4) !important;
+            transition: filter var(--obs-dur-sm) var(--obs-ease-fast),
+                        box-shadow var(--obs-dur-sm) var(--obs-ease-fast),
+                        transform var(--obs-dur-xs) var(--obs-ease-fast) !important;
+            overflow: visible !important;
+
+            svg,
+            .lucide {
+                width: 1.1rem !important;
+                height: 1.1rem !important;
+                margin: 0 !important;
+                flex: 0 0 auto !important;
+                color: var(--obs-primary-bright) !important;
+            }
+
+            // Kill the primary button's sheen so it doesn't paint a
+            // lighter highlight over the dark fill we just set.
+            &::before {
+                display: none !important;
+                content: none !important;
+            }
+
+            &:hover,
+            &:focus-visible {
+                filter: brightness(1.15) !important;
+                box-shadow:
+                    0 1px 2px rgba(0, 0, 0, 0.3),
+                    0 10px 28px -10px rgba(124, 77, 255, 0.55),
+                    0 0 0 1px rgba(124, 77, 255, 0.2) !important;
+            }
+            &:active {
+                transform: scale(0.98) !important;
+            }
+            &:disabled,
+            &[disabled] {
+                opacity: 0.5 !important;
+                cursor: not-allowed !important;
+            }
+        }
+    }
+
+    // Bottom "+ Add" palette.
+    //
+    // Upstream packs the block-type buttons (Text / Paragraph / Choice / …)
+    // into two rows using `.cp-form-creator-types` with `button { border:0;
+    // padding:5px; margin-right:10px; }`. Combined with wide SVGs that's a
+    // visually noisy strip of borderless, flat-gray chips with uneven
+    // horizontal rhythm — the "terrible mess" in the screenshot.
+    //
+    // The fix:
+    //   * Drop the palette onto a real grid so every chip has identical
+    //     width, gap and baseline.
+    //   * Give each chip a squared md radius, ghost border, transparent
+    //     fill, and a warm hover tint — same visual vocabulary as the
+    //     other ghost buttons across the app.
+    //   * Taper the icon size back to 20px so the chip reads as a button,
+    //     not an illustration.
+    .cp-form-creator-add-full {
+        padding: var(--obs-space-4) 0 var(--obs-space-6) 0 !important;
+        margin-top: var(--obs-space-5) !important;
+
+        // The lead-in "+ Add" row. Keep it compact and baseline-aligned
+        // with the palette below.
+        & > div:first-child {
+            margin-bottom: var(--obs-space-3) !important;
+            gap: var(--obs-space-2) !important;
+
+            svg {
+                width: 1.5rem !important;
+                height: 1.5rem !important;
+                color: var(--obs-on-surface-muted) !important;
+            }
+        }
+
+        .cp-form-creator-control-inline {
+            .cp-form-creator-types {
+                display: grid !important;
+                // Min track width has to fit the longest block-type label
+                // ("CONDITIONAL SECTION" at 0.75rem / 0.04em / uppercase +
+                // the 1.15rem leading icon + 10px gap + 14px side padding
+                // ≈ 185px). 200px gives a small safety margin without
+                // wasting horizontal real estate.
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+                gap: var(--obs-space-2) !important;
+
+                &:first-child {
+                    margin-bottom: var(--obs-space-3) !important;
+                    margin-right: 0 !important;
+                }
+
+                button,
+                .btn-secondary {
+                    background: transparent !important;
+                    border: var(--obs-button-border) !important;
+                    border-radius: var(--obs-radius-md) !important;
+                    color: var(--obs-on-surface) !important;
+                    font-weight: 600 !important;
+                    letter-spacing: 0.04em !important;
+                    text-transform: uppercase !important;
+                    font-size: 0.75rem !important;
+                    padding: 10px 14px !important;
+                    margin: 0 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    gap: 10px !important;
+                    justify-content: flex-start !important;
+                    min-height: 44px !important;
+                    min-width: 0 !important;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+                    transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                                border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                                box-shadow var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+                    // Labels must stay on one line inside the chip. Upstream
+                    // wraps each label in a bare text node with no span, so
+                    // we can't target it directly — use the whole chip.
+                    white-space: nowrap !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+
+                    svg {
+                        width: 1.15rem !important;
+                        height: 1.15rem !important;
+                        margin: 0 !important;
+                        line-height: 1 !important;
+                        flex: 0 0 auto !important;
+                        color: var(--obs-on-surface-muted) !important;
+                    }
+
+                    &:hover,
+                    &:not(:disabled):active,
+                    &:focus-visible {
+                        background-color: rgba(124, 77, 255, 0.08) !important;
+                        border: var(--obs-button-border-hover) !important;
+                        box-shadow:
+                            0 1px 2px rgba(0, 0, 0, 0.25),
+                            0 0 0 1px rgba(124, 77, 255, 0.15) !important;
+
+                        svg { color: var(--obs-primary-bright) !important; }
+                    }
+                }
+            }
+        }
+    }
+
+    // The short inline "+ / block-type" mini-palette that appears between
+    // existing questions uses the same classes as the big palette above
+    // but lives in a horizontal flex row (not a grid). Re-shape the chips
+    // there to a compact square icon-button so they don't inherit the
+    // wide 148px column from the grid above.
+    .cp-form-creator-add-inline {
+        gap: 6px !important;
+        margin-bottom: var(--obs-space-3) !important;
+
+        .cp-form-creator-control-inline {
+            gap: 4px !important;
+            flex-wrap: wrap !important;
+
+            .cp-form-creator-types {
+                button,
+                .btn-secondary {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 40px !important;
+                    height: 36px !important;
+                    min-height: 0 !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    background: transparent !important;
+                    border: var(--obs-button-border) !important;
+                    border-radius: var(--obs-radius-md) !important;
+                    box-shadow: none !important;
+
+                    svg {
+                        width: 1.15rem !important;
+                        height: 1.15rem !important;
+                        margin: 0 !important;
+                        color: var(--obs-on-surface-muted) !important;
+                    }
+                    &:hover {
+                        background: rgba(124, 77, 255, 0.08) !important;
+                        border: var(--obs-button-border-hover) !important;
+                        svg { color: var(--obs-primary-bright) !important; }
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    //  INFOPAGES (landing, login, register) — nav, hero, footer
+    // =========================================================================
+
+    .navbar {
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-bottom: var(--obs-ghost-border) !important;
+        box-shadow: var(--obs-shadow-ambient) !important;
+        padding: 0 var(--obs-space-5) !important;
+        min-height: 64px !important;
+    }
+    .navbar .nav-link {
+        color: var(--obs-on-surface-muted) !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.005em !important;
+        padding: 8px 14px !important;
+        border-radius: var(--obs-radius-md) !important;
+        background-color: transparent !important;
+        transition: color var(--obs-dur-sm) var(--obs-ease-fast),
+                    background-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+        &:hover {
+            color: #fff !important;
+            background-color: var(--obs-surface-container) !important;
+        }
+    }
+    // =========================================================================
+    //  LANDING PAGE (body.cp-page-index)
+    //
+    //  Upstream lays the homepage out as a two-column hero: the left column
+    //  holds `<img>` (from /api/logo) + the instance title ("saito" in this
+    //  instance) + a tag-line + a row of plain text links (Terms / Privacy
+    //  / Imprint / Contact / Status). The right column holds the "New
+    //  document" grid and the Drive button.
+    //
+    //  Two problems show up in practice:
+    //    1. If the admin hasn't uploaded a custom logo, `/api/logo` serves
+    //       a near-invisible asset — the left column then just reads as
+    //       "empty space above a gradient word". The whole hero looks
+    //       lopsided because the right column is a real card with visible
+    //       structure and the left column has nothing anchoring it.
+    //    2. `.cp-home-hero` upstream is `justify-content: flex-end`, which
+    //       pushes BOTH columns to the right edge on wide screens, so even
+    //       when the layout is balanced it reads as pushed-off-center.
+    //
+    //  Treatment:
+    //    * A decorative violet "halo" orb sits behind the logo slot via
+    //      `.cp-title::before`. The real `<img>` (if any) overlays the
+    //      orb; if the image is empty/missing, the orb alone carries the
+    //      slot and the hero no longer reads as half-empty.
+    //    * The hero becomes `justify-content: space-between` with a real
+    //      gap, so the two columns share the viewport instead of stacking
+    //      against the right gutter.
+    //    * The "this will be great" tag-line + link row get Manrope
+    //      typography, tracked small-caps on links, and a violet underline
+    //      on hover — same language as the rest of the app.
+    // =========================================================================
+
+    // Note on the selector: `.obsidian_main()` is invoked from inside
+    // `body.html { ... }` in infopages.less, so using a bare `body.…`
+    // selector here would compile to `body.html body.cp-page-index`
+    // (one body nested in another) which never matches anything.  Use
+    // `&.cp-page-index` so it chains onto the parent as
+    // `body.html.cp-page-index`, which is what's actually on the DOM.
+    &.cp-page-index {
+        .cp-home-hero {
+            justify-content: space-between !important;
+            gap: var(--obs-space-6) !important;
+            padding: var(--obs-space-5) var(--obs-space-6) !important;
+        }
+
+        // Left column: decorative halo + masked Saito cube + brand cluster.
+        //
+        // `.cp-title` is the positioning context for two stacked pseudos:
+        //   ::before  — ambient violet→coral halo (blurred radial bloom)
+        //   ::after   — the Saito cube mark, painted by masking the
+        //               instance gradient through /customize/saito-mark.svg
+        //
+        // This instance does not have a custom /api/logo asset configured
+        // so we hide the upstream <img> entirely; the masked mark takes
+        // its place.  If a future admin uploads a logo through the admin
+        // panel we can revisit by removing the `display: none` on the
+        // <img> and dropping the ::after mark.
+        .cp-title {
+            position: relative !important;
+            gap: var(--obs-space-3) !important;
+            padding: var(--obs-space-5) !important;
+
+            // (Previously had a radial violet→coral halo here via
+            // ::before; removed per request — the cube now sits on the
+            // plain background with no ambient glow.)
+
+            // The Saito cube mark, rendered as a gradient filled through
+            // a white-on-transparent SVG mask.  Wherever the SVG has
+            // opaque pixels (the cube linework) the element's
+            // gradient background shows through; the rest of the box
+            // is masked out and paints nothing.  Net effect: the logo's
+            // white lines read as violet→pink→salmon gradient lines
+            // floating in the halo.
+            &::after {
+                content: '' !important;
+                position: relative !important;
+                display: block !important;
+                z-index: 1 !important;
+                // `.cp-title` is a flex column and `::after` is the last
+                // DOM-order pseudo — without an explicit order it would
+                // land below the link row.  `order: -1` hoists it to
+                // the top of the stack so it sits above the title.
+                order: -1 !important;
+                width: 180px !important;
+                // Mark aspect is ~116:134 (slightly taller than wide).
+                // Keep height proportional so the cube isn't squashed.
+                height: 208px !important;
+                margin: 0 auto var(--obs-space-3) !important;
+                background: var(--obs-gradient) !important;
+
+                // `match-source` + luminance works in every engine that
+                // matters; explicit luminance type is set for Firefox,
+                // where the default was alpha for a long stretch.
+                // The Saito cube is inlined as a base64 data URI rather
+                // than referenced as `/customize/saito-mark.svg` so we
+                // don't depend on the Express static mount picking up
+                // a newly-added file (which needs a server restart in
+                // some deployments).  Swapping the cube later is just
+                // a matter of base64'ing a new SVG and pasting it in.
+                @_saito-cube-mask: ~"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTYgMTM0Ij48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEzLjQ5LDM0LjI2LDU5LDIuNzdoMGExLjU2LDEuNTYsMCwwLDAtLjM5LS4xNWgtLjA3YTEuNDcsMS40NywwLDAsMC0uODIuMTFsLS4wNywwLS4wNiwwTDMuMTEsMzQuMThoMEwzLDM0LjI2YTEuNDMsMS40MywwLDAsMC0uNzIsMS4yNHY2M0ExLjQyLDEuNDIsMCwwLDAsMyw5OS43M2w1NC41NCwzMS40OWExLjQ1LDEuNDUsMCwwLDAsLjcyLjIsMS40MiwxLjQyLDAsMCwwLC43Mi0uMmw1NC41NC0zMS40OWExLjQxLDEuNDEsMCwwLDAsLjY5LTFjMC0uMDUsMC0uMSwwLS4xNXMwLS4wOCwwLS4xMnYtNjNBMS40MywxLjQzLDAsMCwwLDExMy40OSwzNC4yNlpNNTYuOCwxMjcuNSw1LjU5LDk3LjkzLDMxLjY3LDUzLjI0LDU2LjgsNjcuODJWMTI3LjVaTTUuMTIsMzcuODNsMjQuMDcsMTRMNS4xMiw5My4wNVptNTQuNTUsMzBMNjEuMTQsNjcsODYuNzIsNTIuMiwxMTEuMzQsMzhWOTdsLTUxLjY3LDBaTTg2LjUyLDQ5LDY1LjU4LDEzLjYyLDYyLjI1LDgsMTA5LjkxLDM1LjVaTTU3LjcyLDYsODQsNTAuNDRsLTE1LjU2LDlMNTguMjMsNjUuMzQsNi42OSwzNS40M1ptMiw5NCw0Ny44MiwwTDU5LjY3LDEyNy41WiIvPjwvc3ZnPg==";
+                mask-image: url(@_saito-cube-mask) !important;
+                mask-repeat: no-repeat !important;
+                mask-position: center !important;
+                mask-size: contain !important;
+                mask-mode: luminance !important;
+                -webkit-mask-image: url(@_saito-cube-mask) !important;
+                -webkit-mask-repeat: no-repeat !important;
+                -webkit-mask-position: center !important;
+                -webkit-mask-size: contain !important;
+            }
+
+            // Upstream's <img src="/api/logo">.  This instance serves no
+            // logo asset, and even if it did we'd prefer the SVG mark
+            // above, so hide it entirely.
+            > img {
+                display: none !important;
+            }
+
+            // Ensure the rest of the brand stack paints above the halo.
+            h1.cp-instance-title,
+            .tag-line,
+            .cp-instance-location,
+            .cp-instance-links {
+                position: relative !important;
+                z-index: 1 !important;
+            }
+
+            h1.cp-instance-title {
+                font-family: 'Manrope', sans-serif !important;
+                font-weight: 600 !important;
+                letter-spacing: -0.02em !important;
+                margin: 0 !important;
+                // Upstream uses 3.7rem which is fine — leave size alone,
+                // but tighten line-height so the title sits in a tidy
+                // block.
+                line-height: 1 !important;
+                // Paint the gradient on the glyphs themselves.
+                background: var(--obs-gradient) !important;
+                -webkit-background-clip: text !important;
+                background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                color: transparent !important;
+            }
+
+            .tag-line {
+                font-family: 'Manrope', sans-serif !important;
+                font-weight: 400 !important;
+                font-size: 1.125rem !important;
+                line-height: 1.55 !important;
+                letter-spacing: 0.005em !important;
+                color: var(--obs-on-surface-muted) !important;
+                max-width: 42ch !important;
+                margin: 0 auto !important;
+                text-align: center !important;
+            }
+
+            .cp-instance-location {
+                color: var(--obs-on-surface-dim) !important;
+                font-size: 0.875rem !important;
+                margin-top: 0 !important;
+            }
+
+            // Footer link row (Terms / Privacy / Imprint / Contact / Status).
+            // Upstream is a padded inline list with 0.5em margin per link —
+            // comes out cluttered on dark. Re-space as a small-caps row
+            // with a hairline top divider so it reads as meta chrome.
+            .cp-instance-links {
+                padding: var(--obs-space-3) 0 0 0 !important;
+                margin-top: var(--obs-space-3) !important;
+                border-top: var(--obs-ghost-border-soft) !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: var(--obs-space-3) !important;
+
+                a {
+                    margin: 0 !important;
+                    color: var(--obs-on-surface-dim) !important;
+                    font-family: 'Manrope', sans-serif !important;
+                    font-weight: 600 !important;
+                    font-size: 0.6875rem !important;
+                    letter-spacing: 0.12em !important;
+                    text-transform: uppercase !important;
+
+                    &:hover {
+                        color: var(--obs-primary-bright) !important;
+                        text-decoration: none !important;
+                    }
+                }
+            }
+        }
+
+        // Right column: "New document" grid panel + Drive button.
+        // Keep the panel framed as a real container (ghost border, gentle
+        // shadow) — we just swap upstream's opaque gray fill for the
+        // theme's translucent card surface so it sits in the same visual
+        // vocabulary as the rest of the app.
+        .cp-app-grid {
+            background: rgba(255, 255, 255, 0.015) !important;
+            border: var(--obs-ghost-border) !important;
+            border-radius: var(--obs-radius-lg) !important;
+            padding: var(--obs-space-5) !important;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.25),
+                0 12px 32px -16px rgba(124, 77, 255, 0.25) !important;
+
+            .cp-app-new {
+                font-family: 'Manrope', sans-serif !important;
+                font-weight: 700 !important;
+                font-size: 0.8125rem !important;
+                letter-spacing: 0.08em !important;
+                text-transform: uppercase !important;
+                color: var(--obs-on-surface-muted) !important;
+                gap: var(--obs-space-2) !important;
+                padding: 0 var(--obs-space-2) var(--obs-space-3) !important;
+            }
+        }
+
+        // Drive shortcut row.
+        .cp-app-drive {
+            margin-top: var(--obs-space-4) !important;
+
+            a.cp-drive-btn {
+                font-family: 'Manrope', sans-serif !important;
+                font-weight: 600 !important;
+                font-size: 1rem !important;
+                color: var(--obs-on-surface) !important;
+                padding: var(--obs-space-3) var(--obs-space-4) !important;
+                border-radius: var(--obs-radius-md) !important;
+                background: transparent !important;
+                border: var(--obs-button-border) !important;
+                transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                            border-color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+                svg {
+                    color: var(--obs-primary-bright) !important;
+                    margin-right: var(--obs-space-2) !important;
+                }
+
+                &:hover {
+                    background: rgba(124, 77, 255, 0.08) !important;
+                    border: var(--obs-button-border-hover) !important;
+                    transform: none !important;
+                }
+            }
+        }
+    }
+
+    .navbar .cp-register-btn,
+    .navbar a.cp-register-btn {
+        background: var(--obs-gradient) !important;
+        color: var(--obs-on-primary) !important;
+        border-radius: var(--obs-radius-md) !important;
         font-weight: 700 !important;
-        letter-spacing: 0.05em !important;
-    }
+        padding: 8px 20px !important;
+        box-shadow: 0 4px 14px -4px rgba(124, 77, 255, 0.45) !important;
 
-    // =====================================================================
-    // 18. LOADING SCREEN
-    // =====================================================================
-
-    .cp-loading-container {
-        background-color: @cryptpad_color_grey_900 !important;
-    }
-    .cp-loading-spinner-container {
-        .loadingContainer {
-            background-color: @cryptpad_color_grey_900 !important;
+        &:hover {
+            filter: brightness(1.12) !important;
+            background: var(--obs-gradient) !important;
+            color: var(--obs-on-primary) !important;
         }
     }
 
-    // =====================================================================
-    // 19. GHOST BORDERS — Global cleanup
-    //     Replace any remaining hard borders with ghost strokes
-    // =====================================================================
+    // =========================================================================
+    //  INFO-PAGE FOOTER (footer.cp-footer)
+    //
+    //  Rendered on every infopage (index, login, register, recovery, …).
+    //  Upstream markup (see Pages.infopageFooter in customize.dist/pages.js):
+    //      footer.cp-footer
+    //        .cp-footer-left      — shield icon + "CryptPad" wordmark + version
+    //        .cp-footer-center    — .cp-logo-btns with Project Website + Donate
+    //        .cp-footer-right     — language icon + <select>
+    //
+    //  Two problems on dark:
+    //    1. The Project Website / Donate links are painted with
+    //       @cryptpad_color_link as the background, which is a dim violet
+    //       that washes out on the dark footer so the buttons read as
+    //       near-invisible ghosted text.
+    //    2. Upstream stacks 10px padding on every child container plus a
+    //       40px logo, so the whole footer is ~70-80px tall — visually
+    //       heavy for what it carries.
+    //
+    //  Treatment:
+    //    * Shrink the bar vertically (compact padding + smaller shield +
+    //      smaller wordmark).
+    //    * Re-paint the two center buttons as theme ghost buttons
+    //      (transparent fill, `--obs-button-border`, gradient-tinted hover)
+    //      matching the rest of the UI language.
+    //    * Thin the CryptPad shield down (smaller + slightly dimmed) so it
+    //      doesn't dominate the bar.
+    // =========================================================================
 
+    footer.cp-footer {
+        // Let's take the bar to roughly a third of its original height.
+        // A 40-44px target works nicely: tall enough to contain the
+        // shrunken shield + wordmark + buttons, short enough to read as
+        // meta chrome.
+        min-height: 0 !important;
+        padding: var(--obs-space-1) var(--obs-space-4) !important;
+        box-shadow: none !important;
+        border-top: var(--obs-ghost-border-soft) !important;
+        background-color: var(--obs-surface-lowest) !important;
+        align-items: center !important;
+
+        // Compact every row-child so padding doesn't stack up.
+        .cp-footer-left,
+        .cp-footer-center,
+        .cp-footer-right {
+            padding: 0 !important;
+            gap: var(--obs-space-2) !important;
+
+            a { margin-right: 0 !important; }
+        }
+
+        // Shield + wordmark cluster.
+        .cp-logo-foot {
+            padding: var(--obs-space-1) var(--obs-space-2) !important;
+            gap: var(--obs-space-2) !important;
+
+            img {
+                // Upstream is 40px.  Drop to 22px and dim slightly so
+                // the shield reads as a thinner mark, not a bold badge.
+                max-height: 22px !important;
+                margin-right: var(--obs-space-2) !important;
+                opacity: 0.75 !important;
+            }
+            .logo-font {
+                font-family: 'Manrope', sans-serif !important;
+                font-size: 0.9375rem !important;
+                font-weight: 600 !important;
+                letter-spacing: 0.01em !important;
+                height: auto !important;
+                line-height: 1 !important;
+                color: var(--obs-on-surface-muted) !important;
+            }
+        }
+
+        .cp-footer-version {
+            padding: 0 var(--obs-space-2) !important;
+            font-family: 'Manrope', sans-serif !important;
+            font-size: 0.6875rem !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.08em !important;
+            color: var(--obs-on-surface-dim) !important;
+            text-transform: uppercase !important;
+        }
+
+        // Center action cluster — Project Website / Donate as ghost buttons.
+        //
+        // Upstream paints these with a solid link-color fill which comes
+        // out as a ~#bfa8ff wash on dark: not enough contrast against
+        // the footer, text becomes unreadable.  Re-skinning to ghost
+        // buttons (transparent + contrasty border) keeps the bar light
+        // and pulls these into the same visual language as the Share /
+        // Access buttons in the app toolbars.
+        .cp-logo-btns {
+            padding: 0 !important;
+            display: inline-flex !important;
+            gap: var(--obs-space-2) !important;
+
+            a {
+                background: transparent !important;
+                background-color: transparent !important;
+                color: var(--obs-on-surface-muted) !important;
+                border: var(--obs-button-border) !important;
+                border-radius: var(--obs-radius-md) !important;
+                padding: var(--obs-space-1) var(--obs-space-3) !important;
+                font-family: 'Manrope', sans-serif !important;
+                font-weight: 600 !important;
+                font-size: 0.75rem !important;
+                letter-spacing: 0.04em !important;
+                line-height: 1.4 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: var(--obs-space-1) !important;
+                transition: background-color var(--obs-dur-sm) var(--obs-ease-fast),
+                            border-color var(--obs-dur-sm) var(--obs-ease-fast),
+                            color var(--obs-dur-sm) var(--obs-ease-fast) !important;
+
+                svg {
+                    color: var(--obs-primary-bright) !important;
+                    width: 14px !important;
+                    height: 14px !important;
+                    margin-right: 0 !important;
+                }
+
+                &:hover {
+                    background: rgba(124, 77, 255, 0.08) !important;
+                    border: var(--obs-button-border-hover) !important;
+                    color: var(--obs-on-surface) !important;
+                    text-decoration: none !important;
+                }
+            }
+        }
+
+        // Language selector — keep compact, match the ghost-button vocabulary.
+        .cp-footer-language {
+            padding: 0 !important;
+            margin-right: 0 !important;
+            gap: var(--obs-space-1) !important;
+
+            svg {
+                color: var(--obs-on-surface-dim) !important;
+                width: 14px !important;
+                height: 14px !important;
+            }
+
+            select {
+                background: transparent !important;
+                background-color: transparent !important;
+                color: var(--obs-on-surface-muted) !important;
+                border: var(--obs-button-border) !important;
+                border-radius: var(--obs-radius-md) !important;
+                padding: var(--obs-space-1) var(--obs-space-3) !important;
+                font-family: 'Manrope', sans-serif !important;
+                font-size: 0.75rem !important;
+                font-weight: 500 !important;
+                line-height: 1.4 !important;
+
+                &:hover {
+                    border: var(--obs-button-border-hover) !important;
+                    color: var(--obs-on-surface) !important;
+                }
+            }
+        }
+    }
+
+    .cp-app-grid {
+        background-color: var(--obs-surface-container) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-lg) !important;
+        box-shadow: var(--obs-shadow-ambient) !important;
+        padding: var(--obs-space-5) !important;
+    }
+
+    h1.cp-instance-title,
+    .cp-title h1 {
+        font-family: 'Manrope', sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.025em !important;
+        line-height: 1.08 !important;
+        background: var(--obs-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .tag-line,
+    .cp-container p.lead {
+        color: var(--obs-on-surface-muted) !important;
+        font-size: 1.125rem !important;
+        line-height: 1.55 !important;
+    }
+
+    // Footer
+    footer,
+    .cp-version-footer {
+        background-color: var(--obs-surface-lowest) !important;
+        border: none !important;
+        border-top: var(--obs-ghost-border) !important;
+        box-shadow: none !important;
+        padding: var(--obs-space-5) var(--obs-space-6) !important;
+    }
+
+    // =========================================================================
+    //  ADMIN / SETTINGS / SUPPORT PAGES — sidebar layout pages
+    // =========================================================================
+
+    .cp-sidebarlayout-element {
+        background-color: var(--obs-surface-container) !important;
+        border: var(--obs-ghost-border) !important;
+        border-radius: var(--obs-radius-md) !important;
+        padding: var(--obs-space-4) var(--obs-space-5) !important;
+        margin-bottom: var(--obs-space-3) !important;
+    }
+
+    // =========================================================================
+    //  MISC POLISH
+    // =========================================================================
+
+    // Any lingering hard borders become ghost strokes
     hr {
-        border-color: fade(#494455, 15%) !important;
+        border: none !important;
+        border-top: var(--obs-ghost-border) !important;
+        margin: var(--obs-space-4) 0 !important;
+    }
+
+    // Code / pre inside app chrome (not the in-app editor canvas)
+    code,
+    kbd,
+    pre {
+        background-color: var(--obs-surface-lowest) !important;
+        border: var(--obs-ghost-border-soft) !important;
+        border-radius: var(--obs-radius-sm) !important;
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+        font-size: 0.8125em !important;
+        padding: 1px 6px !important;
+    }
+    pre {
+        padding: var(--obs-space-3) var(--obs-space-4) !important;
+    }
+
+    // Respect reduced-motion preference
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+        }
     }
 }

@@ -29,6 +29,27 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
     };
 
     var SPINNER_DISAPPEAR_TIME = 1000;
+    // After this delay following the "saved" message, fade the SAVED
+    // capsule out of view (theming choice for Obsidian Flow — see the
+    // .cp-toolbar-spinner-hidden rule in obsidian-rules.less).  Any
+    // subsequent text change cancels the fade and shows the capsule again.
+    var SPINNER_FADE_AFTER = 2500;
+    var SPINNER_HIDDEN_CLS = 'cp-toolbar-spinner-hidden';
+    // Wrap a $spin.text() call so every status change reveals the capsule
+    // (cancels any pending hide) and, if the text is the "saved" string,
+    // schedules a fade.  Other text (typing, reconnecting, etc.) stays
+    // visible indefinitely.
+    var writeSpinner = function ($spin, text) {
+        if (!$spin || !$spin.text) { return; }
+        $spin.text(text);
+        $spin.removeClass(SPINNER_HIDDEN_CLS);
+        if ($spin.fadeTimer) { clearTimeout($spin.fadeTimer); $spin.fadeTimer = null; }
+        if (text === Messages.saved) {
+            $spin.fadeTimer = setTimeout(function () {
+                $spin.addClass(SPINNER_HIDDEN_CLS);
+            }, SPINNER_FADE_AFTER);
+        }
+    };
 
     // Toolbar parts
     var TOOLBAR_CLS = Bar.constants.toolbar = 'cp-toolbar';
@@ -939,11 +960,11 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
 
         if (typing === -1) {
             typing = 1;
-            $spin.text(Messages.typing);
+            writeSpinner($spin, Messages.typing);
             $spin.interval = window.setInterval(function () {
                 if (toolbar.isErrorState) { return; }
                 var dots = Array(typing+1).join('.');
-                $spin.text(Messages.typing + dots);
+                writeSpinner($spin, Messages.typing + dots);
                 typing++;
                 if (typing > 3) { typing = 0; }
             }, 500);
@@ -954,7 +975,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
                 if (toolbar.isErrorState) { return; }
                 window.clearInterval($spin.interval);
                 typing = -1;
-                $spin.text(Messages.saved);
+                writeSpinner($spin, Messages.saved);
             }, /*local ? 0 :*/ SPINNER_DISAPPEAR_TIME);
         };
         if (config.spinner) {
@@ -975,7 +996,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
     var createSpinner = function (toolbar, config) {
         if (config.readOnly === 1) { return; }
         var $spin = $('<span>', {'class': SPINNER_CLS}).appendTo(toolbar.title);
-        $spin.text(Messages.synchronizing);
+        writeSpinner($spin, Messages.synchronizing);
 
         if (config.spinner) {
             config.spinner.onPatch.reg(ks(toolbar, config));
@@ -1495,7 +1516,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             toolbar.connected = false;
 
             if (toolbar.spinner) {
-                toolbar.spinner.text(Messages.disconnected);
+                writeSpinner(toolbar.spinner, Messages.disconnected);
             }
             if (hideUserList) {
                 updateUserList(toolbar, config, true);
@@ -1506,7 +1527,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             if (toolbar.history) { return; }
             toolbar.connected = false;
             if (toolbar.spinner) {
-                toolbar.spinner.text(Messages.initializing);
+                writeSpinner(toolbar.spinner, Messages.initializing);
             }
         };
         toolbar.reconnecting = function (/*userId*/) {
@@ -1517,10 +1538,10 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
                 var interval = window.setInterval(function () {
                     if (toolbar.connected) { clearInterval(interval); }
                     var dots = Array(state+1).join('.');
-                    toolbar.spinner.text(Messages.reconnecting + dots);
+                    writeSpinner(toolbar.spinner, Messages.reconnecting + dots);
                     if (++state > 3) { state = 0; }
                 }, 500);
-                toolbar.spinner.text(Messages.reconnecting);
+                writeSpinner(toolbar.spinner, Messages.reconnecting);
             }
         };
         toolbar.ready = function () {
@@ -1536,7 +1557,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
                     return void kickSpinner(toolbar, config);
                 }
                 var txt = Messages._getKey('errorState', [error]);
-                toolbar.spinner.text(txt);
+                writeSpinner(toolbar.spinner, txt);
             }
         };
 
@@ -1544,7 +1565,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
         toolbar.forgotten = function (/*userId*/) {
             toolbar.connected = false;
             if (toolbar.spinner) {
-                toolbar.spinner.text(Messages.forgotten);
+                writeSpinner(toolbar.spinner, Messages.forgotten);
             }
         };
 
@@ -1556,7 +1577,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             updateUserList(toolbar, config, true);
             toolbar.title.toggleClass('cp-toolbar-unsync', true); // "read only" next to the title
             if (toolbar.spinner) {
-                toolbar.spinner.text(Messages.deletedFromServer);
+                writeSpinner(toolbar.spinner, Messages.deletedFromServer);
             }
         };
 
@@ -1584,7 +1605,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             toolbar.history = bool;
             toolbar.title.toggleClass('cp-toolbar-unsync', bool);
             if (bool && toolbar.spinner) {
-                toolbar.spinner.text(Messages.snaphot_title);
+                writeSpinner(toolbar.spinner, Messages.snaphot_title);
             } else {
                 kickSpinner(toolbar, config);
             }
@@ -1593,7 +1614,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             toolbar.history = bool;
             toolbar.title.toggleClass('cp-toolbar-unsync', bool);
             if (bool && toolbar.spinner) {
-                toolbar.spinner.text(Messages.historyText);
+                writeSpinner(toolbar.spinner, Messages.historyText);
             } else {
                 kickSpinner(toolbar, config);
             }
@@ -1605,7 +1626,7 @@ MessengerUI, Messages, Pages, PadTypes, Icons) {
             toolbar.isErrorState = bool; // Stop kickSpinner
             toolbar.title.toggleClass('cp-toolbar-unsync', bool); // "read only" next to the title
             if (bool && toolbar.spinner) {
-                toolbar.spinner.text(Messages.Offline);
+                writeSpinner(toolbar.spinner, Messages.Offline);
             } else {
                 kickSpinner(toolbar, config);
             }
